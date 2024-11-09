@@ -48,10 +48,12 @@ public:
         cameraPosition = pos;
 
         glm::vec3 diff = pos - target;
+        if (glm::length(diff) == 0.f)
+            diff = glm::vec3(0.f, 0.f, -1.f);
 
-        if (glm::dot(upVector, glm::normalize(diff)) == 0.f) {  // if the camera is looking straight up or down, set X+ as the heading
-            cameraHeading = glm::vec3(1.f, 0.f, 0.f);
-            cameraRight = glm::vec3(0.f, 0.f, -1.f);
+        if (abs(glm::dot(upVector, glm::normalize(diff))) == 1.f) {  // if the camera is looking straight up or down, set Z- as the heading
+            cameraHeading = glm::vec3(0.f, 0.f, -1.f);
+            cameraRight = glm::vec3(1.f, 0.f, 0.f);
         }
         else {
             cameraHeading = -glm::normalize(glm::vec3(diff.x, 0.f, diff.z));
@@ -60,7 +62,10 @@ public:
 
         // calculate pitch and yaw angles
         cameraPitch = glm::degrees(-glm::asin(diff.y / glm::length(diff)));
-        cameraYaw = glm::degrees(glm::atan(diff.x,diff.z));
+        if (diff.x == 0.f && diff.z == 0)
+            cameraYaw = 0.f;
+        else
+            cameraYaw = glm::degrees(glm::atan(diff.x,diff.z));
     }
 
     glm::mat4 matrix() {
