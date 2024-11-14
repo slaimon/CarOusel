@@ -8,6 +8,7 @@ in vec2 vTexCoord;
 #define AMBIENT_LIGHT      vec3(0.1,0.1,0.1)
 #define SUNLIGHT_COLOR     vec3(1.0,1.0,1.0)
 #define LAMPLIGHT_COLOR    vec3(1.0,0.9,0.8)
+#define SHININESS          2.0
 
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  0.5
@@ -40,6 +41,7 @@ in vec3 vSunWS;
 uniform vec3 uLamps[NLAMPS];
 uniform vec3 uSun;
 uniform float uLampState;
+uniform float uDrawShadows;
 
 uniform vec3 uColor;
 uniform int uMode;
@@ -50,17 +52,17 @@ uniform sampler2D uShadowMap;
 
 // L and N must be normalized
 float lightIntensity(vec3 L, vec3 N) {
-	return max(0.0, dot(L,N));
+   return max(0.0, dot(L,N));
 }
 
-/*
+
 float specularIntensity(vec3 L, vec3 N, vec3 V) {
    float LN = lightIntensity(L,N);
    vec3 R = -L+2*dot(L,N)*N;
    
-   return ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,R),uShininess));
+   return ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,R),SHININESS));
 }
-
+/*
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
    float angle = acos(dot(normalize(lightPos-surfacePos),vec3(0.,-1.0,0.)));
    
@@ -78,11 +80,14 @@ float attenuation(vec3 lightPos, vec3 surfacePos) {
 }
 */
 float isLit(vec3 L, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+
    float bias = clamp(BIAS_A*tan(acos(dot(N,L))), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
    float depth = texture(uShadowMap,pLS.xy).x;
-	
-	return ((depth + bias < pLS.z) ? (0.0) : (1.0));
+   
+   return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
 // this produce the Hue for v:0..1 (for debug purposes)
@@ -96,7 +101,7 @@ vec3 hsv2rgb(float  v)
 void main(void) { 
    vec3 surfaceNormal;
    vec4 diffuseColor;
-   float sunIntensitySpec;
+   float sunIntensitySpec = 0.0;
    float sunIntensityDiff;
    vec4 lampsContrib;
    
@@ -124,6 +129,18 @@ void main(void) {
       //sunIntensitySpec = specularIntensity(normalize(sunToSurfaceVS), normalize(surfaceNormal), normalize(-vPos));
       diffuseColor = vec4(uColor, 1.0);
    }
+   if (uMode == 3) {
+      surfaceNormal = normalize(vNormal);
+	  sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+	  sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+	  diffuseColor = texture2D(uColorImage,vTexCoord.xy);
+   }
+   if (uMode == 4) {
+      surfaceNormal = normalize(vNormal);
+	  sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+	  sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+	  diffuseColor = vec4(uColor,1.0);
+   }
 
    /*
    for (int i=0; i<NLAMPS; i++) {
@@ -133,7 +150,7 @@ void main(void) {
    lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0)/NLAMPS;
    */
    
-   vec4 sunContrib = sunIntensityDiff * vec4(SUNLIGHT_COLOR,1.0); // + sunIntensitySpec * vec4(uSpecColor,1.0);
+   vec4 sunContrib = sunIntensityDiff * vec4(SUNLIGHT_COLOR,1.0) + sunIntensitySpec * vec4(SUNLIGHT_COLOR,1.0);
    
    color = diffuseColor *
             (vec4(AMBIENT_LIGHT,1.0) +
