@@ -55,7 +55,6 @@ float lightIntensity(vec3 L, vec3 N) {
    return max(0.0, dot(L,N));
 }
 
-
 float specularIntensity(vec3 L, vec3 N, vec3 V) {
    float LN = lightIntensity(L,N);
    vec3 R = -L+2*dot(L,N)*N;
@@ -108,38 +107,39 @@ void main(void) {
    vec3 sunToSurfaceVS = normalize(vSunVS-vPos);
    vec3 lampToSurfaceVS;
    
-   // textured flat shading for terrain and track
+   // textured flat shading
    if (uMode == 0) {
       surfaceNormal = normalize(cross(dFdx(vPos),dFdy(vPos)));
       sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
-   // normal map shading for cars
+   // normal map shading
    if (uMode == 1) {
       surfaceNormal = texture2D(uNormalmapImage,vTexCoord.xy).xyz ;
       surfaceNormal = normalize(surfaceNormal*2.0-1.0);
       sunIntensityDiff = lightIntensity(normalize(vSunTS), surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
-   // monochrome flat shading for cameras
-   // TODO: convert into phong at least
+   // monochrome flat shading
    if (uMode == 2) {
       surfaceNormal = normalize(cross(dFdx(vPos),dFdy(vPos)));
       sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
       //sunIntensitySpec = specularIntensity(normalize(sunToSurfaceVS), normalize(surfaceNormal), normalize(-vPos));
       diffuseColor = vec4(uColor, 1.0);
    }
+   // textured phong shading
    if (uMode == 3) {
       surfaceNormal = normalize(vNormal);
-	  sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
-	  sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
-	  diffuseColor = texture2D(uColorImage,vTexCoord.xy);
+      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+      sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+      diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
+   // monochrome phong shading
    if (uMode == 4) {
       surfaceNormal = normalize(vNormal);
-	  sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
-	  sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
-	  diffuseColor = vec4(uColor,1.0);
+      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+      sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+      diffuseColor = vec4(uColor,1.0);
    }
 
    /*
