@@ -528,7 +528,7 @@ void draw_lamps(shader sh, matrix_stack stack) {
       // draw the lamp itself
       stack.load(lampT[i]);
 
-      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       drawLoadedModel(stack, model_lamp, bbox_lamp, sh);
    
