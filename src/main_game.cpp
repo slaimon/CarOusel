@@ -286,17 +286,20 @@ std::vector<GLfloat> generateTerrainTextureCoords(terrain t) {
    return v;
 }
 
-glm::vec3 getTerrainVertex(terrain t, unsigned int i, unsigned int j) {
+void pushVec3ToBuffer(std::vector<float>& buffer, glm::vec3 v) {
+    buffer.push_back(v.x);
+    buffer.push_back(v.y);
+    buffer.push_back(v.z);
+}
+
+glm::vec3 getTerrainVertex(terrain t, const unsigned int i, const unsigned int j) {
     const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
     const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
-    if (i >= X)
-        i = X-1;
-    if (j >= Z)
-        j = Z-1;
 
-    return glm::vec3(t.rect_xz[0] + (i / float(X)) * t.rect_xz[2],
-                     t.hf(i, j),
-                     t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3]);
+    float x = t.rect_xz[0] + (i / float(X)) * t.rect_xz[2];
+    float z = t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3];
+
+    return glm::vec3(x, t.hf((i>=X)?(X-1):(i), (j>=Z)?(Z-1):(j)), z);
 }
 
 void generateTerrainVertexNormals(terrain t, renderable& r) {
@@ -308,10 +311,7 @@ void generateTerrainVertexNormals(terrain t, renderable& r) {
         for (unsigned int ix = 0; ix < X; ++ix) {
             glm::vec3 V = getTerrainVertex(t, ix + 1, iz) - getTerrainVertex(t, ix, iz);
             glm::vec3 U = getTerrainVertex(t, ix, iz + 1) - getTerrainVertex(t, ix, iz);
-            glm::vec3 R = glm::cross(U, V);
-            normals.push_back(R.x);
-            normals.push_back(R.y);
-            normals.push_back(R.z);
+            pushVec3ToBuffer(normals, glm::normalize(glm::cross(U, V)));
         }
     }
 
