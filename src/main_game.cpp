@@ -66,7 +66,7 @@ int height = 800;
 
 
 // textures and shading
-typedef enum {
+typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
    SHADING_NORMALMAP,         // 1
    SHADING_MONOCHROME_FLAT,   // 2
@@ -74,7 +74,7 @@ typedef enum {
    SHADING_MONOCHROME_PHONG   // 4
 } shadingMode_t;
 
-typedef enum {
+typedef enum textureSlot {
    TEXTURE_DEFAULT,
    TEXTURE_GRASS,
    TEXTURE_ROAD,
