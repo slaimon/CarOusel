@@ -370,7 +370,6 @@ std::vector<glm::mat4> computeLampOrientation(track t, std::vector<stick_object>
    return result;
 }
 
-float lamp_height;
 // returns a vector containing the transformation to be applied to each lamp
 std::vector<glm::mat4> lampTransform(track t, std::vector<stick_object> lamps) {
    std::vector<glm::mat4> result(lamps.size());
@@ -467,7 +466,7 @@ void draw_track(shader sh, matrix_stack stack) {
    
    glActiveTexture(GL_TEXTURE0 + TEXTURE_ROAD);
    glBindTexture(GL_TEXTURE_2D, texture_track_diffuse.id);
-   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_FLAT);
    glUniform1i(sh["uColorImage"], TEXTURE_ROAD);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_track().mode, r_track().count, r_track().itype, 0);
@@ -696,7 +695,7 @@ int main(int argc, char** argv) {
       std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
       r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
 
-      generateTrackVertexNormals(r.t(), r_track);
+      //generateTrackVertexNormals(r.t(), r_track);
 
 
    // prepare the terrain
