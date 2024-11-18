@@ -10,6 +10,8 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Press **E** to toggle between fast and slow movement (useful to observe the details)
 
+- Press **Q** to toggle shadows
+
 - Press **T** to stop the sun and the cars from moving. When you press T again, they will skip ahead to where they would've been.
 
 - Press **C** to cycle between the available cameras.
@@ -18,7 +20,7 @@ It consists of a freely explorable scene with cars running around a track.
 
 ### Features
 
-- Flat shading with textures for the track and terrain
+- Phong shading with textures for the terrain, lamps and trees
 
 - Normal mapping on the cars
 

@@ -66,13 +66,15 @@ int height = 800;
 
 
 // textures and shading
-typedef enum {
+typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
    SHADING_NORMALMAP,         // 1
-   SHADING_MONOCHROME_FLAT    // 2
+   SHADING_MONOCHROME_FLAT,   // 2
+   SHADING_TEXTURED_PHONG,    // 3
+   SHADING_MONOCHROME_PHONG   // 4
 } shadingMode_t;
 
-typedef enum {
+typedef enum textureSlot {
    TEXTURE_DEFAULT,
    TEXTURE_GRASS,
    TEXTURE_ROAD,
@@ -96,9 +98,9 @@ std::vector <renderable> model_car, model_camera, model_lamp, model_tree;
 void load_models() {
    gltf_loader gltfLoader;
    gltfLoader.load_to_renderable(models_path + "car1.glb", model_car, bbox_car);
-   //gltfLoader.load_to_renderable(models_path + "camera3.glb", model_camera, bbox_camera);
+   gltfLoader.load_to_renderable(models_path + "camera4.glb", model_camera, bbox_camera);
    gltfLoader.load_to_renderable(models_path + "lamp2.glb", model_lamp, bbox_lamp);
-   //gltfLoader.load_to_renderable(models_path + "tree.glb", model_tree, bbox_tree);
+   gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
 
 // the passed shader MUST be already active!
@@ -152,6 +154,7 @@ bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
 bool lampState = true;
+bool drawShadows = true;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -203,6 +206,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
          
          case GLFW_KEY_L:
             lampState = !lampState;
+            break;
+
+         case GLFW_KEY_Q:
+            drawShadows = !drawShadows;
             break;
       }
    }  
@@ -279,16 +286,53 @@ std::vector<GLfloat> generateTerrainTextureCoords(terrain t) {
    return v;
 }
 
-/*
-std::vector<GLfloat> generateTerrainVertexNormals(terrain t) {
-   std::vector<GLfloat> n(r.vn);
-   
-   unsigned int slot = 0;
-   for (unsigned int i = 0; i < n.size(); i++) {
-      // ...
-   }
+void pushVec3ToBuffer(std::vector<float>& buffer, glm::vec3 v) {
+    buffer.push_back(v.x);
+    buffer.push_back(v.y);
+    buffer.push_back(v.z);
 }
-*/
+
+glm::vec3 getTerrainVertex(terrain t, const unsigned int i, const unsigned int j) {
+    const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
+    const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
+
+    float x = t.rect_xz[0] + (i / float(X)) * t.rect_xz[2];
+    float z = t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3];
+
+    return glm::vec3(x, t.hf((i>=X)?(X-1):(i), (j>=Z)?(Z-1):(j)), z);
+}
+
+void generateTerrainVertexNormals(terrain t, renderable& r) {
+    const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
+    const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
+    
+    std::vector<float> normals;
+    for (unsigned int iz = 0; iz < Z; ++iz) {
+        for (unsigned int ix = 0; ix < X; ++ix) {
+            glm::vec3 V = getTerrainVertex(t, ix + 1, iz) - getTerrainVertex(t, ix, iz);
+            glm::vec3 U = getTerrainVertex(t, ix, iz + 1) - getTerrainVertex(t, ix, iz);
+            pushVec3ToBuffer(normals, glm::normalize(glm::cross(U, V)));
+        }
+    }
+
+    r.add_vertex_attribute<float>(&normals[0], X * Z * 3, 2, 3);
+}
+
+void generateTrackVertexNormals(track t, renderable& r) {
+    unsigned int size = t.curbs[0].size();
+
+    std::vector<float> normals(2 * 3 * size);
+    for (unsigned int i = 0; i < size; ++i) {
+        glm::vec3 V0 = t.curbs[0][(i + 1) % size] - t.curbs[0][i];
+        glm::vec3 V1 = t.curbs[1][(i + 1) % size] - t.curbs[0][i];
+        glm::vec3 U = t.curbs[1][i] - t.curbs[0][i];
+
+        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V0, U)));
+        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V1, U)));
+    }
+
+    r.add_vertex_attribute<float>(&normals[0], 2 * 3 * size, 2, 3);
+}
 
 // returns the vector pointing from the given point to the curb vertex closest to it
 glm::vec3 findClosestCurbVertex(track t, glm::vec3 lamp_position) {
@@ -326,7 +370,6 @@ std::vector<glm::mat4> computeLampOrientation(track t, std::vector<stick_object>
    return result;
 }
 
-float lamp_height;
 // returns a vector containing the transformation to be applied to each lamp
 std::vector<glm::mat4> lampTransform(track t, std::vector<stick_object> lamps) {
    std::vector<glm::mat4> result(lamps.size());
@@ -351,19 +394,24 @@ std::vector<glm::vec3> lampLightPositions(std::vector<glm::mat4> lampTransforms)
    return result;
 }
 
+float random(float low, float high) {
+    return low + (high - low) * (std::rand() / (float)RAND_MAX);
+}
+
 glm::mat4 randomRotation() {
-   float angle = 6.28 * (std::rand()/(float)RAND_MAX);
+   float angle = random(0.f, 6.28f);
    return glm::rotate(glm::mat4(1.f), angle, glm::vec3(0.f,1.f,0.f));  
 }
 
 std::vector<glm::mat4> treeTransform(std::vector<stick_object> trees) {
    std::vector<glm::mat4> result(trees.size());
    
-   glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(1./18.f));
-   glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(0.f,0.29f,0.f));
+   glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(0.f,0.43f,0.f));
    for (unsigned int i = 0; i < result.size(); i++) {
       glm::mat4 T2 = glm::translate(glm::mat4(1.f), scale*(trees[i].pos-center));
-      result[i] = T2*randomRotation()*S*T;
+      glm::mat4 R = randomRotation();
+      glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(1. / 12.f) * random(0.8f, 1.2f));
+      result[i] = T2*R*S*T;
    }
 
    return result;
@@ -398,7 +446,7 @@ void draw_terrain(shader sh, matrix_stack stack) {
    
    glActiveTexture(GL_TEXTURE0 + TEXTURE_GRASS);
    glBindTexture(GL_TEXTURE_2D, texture_grass_diffuse.id);
-   glUniform1i(sh["uMode"], SHADING_TEXTURED_FLAT);
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
    glUniform1i(sh["uColorImage"], TEXTURE_GRASS);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_terrain().mode, r_terrain().count, r_terrain().itype, 0);
@@ -461,7 +509,7 @@ void draw_cameramen(shader sh, matrix_stack stack) {
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f,1.f,0.f)));
       
       glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
-      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glUniform1i(sh["uMode"], SHADING_MONOCHROME_PHONG);
       
       drawLoadedModel(stack, model_camera, bbox_camera, sh);
       stack.pop();
@@ -480,7 +528,7 @@ void draw_lamps(shader sh, matrix_stack stack) {
       // draw the lamp itself
       stack.load(lampT[i]);
 
-      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       drawLoadedModel(stack, model_lamp, bbox_lamp, sh);
    
@@ -508,7 +556,7 @@ void draw_trees(shader sh, matrix_stack stack) {
       stack.push();
       stack.load(treeT[i]);
       
-      glUniform1i(sh["uMode"], SHADING_TEXTURED_FLAT);
+      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform3f(sh["uColor"], 0.3f, 0.9f, 0.3f);
       drawLoadedModel(stack, model_tree, bbox_tree, sh);
       
@@ -531,18 +579,18 @@ void draw_debugTrees(matrix_stack stack) {
 shader shader_fsq;
 renderable r_quad;
 void draw_texture(GLint tex_id) {
-	GLint at;
-	glUseProgram(shader_fsq.program);
-	
-	glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
-	glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
-	glBindTexture(GL_TEXTURE_2D, tex_id);
-	glUniform1i(shader_fsq["uTexture"], TEXTURE_SHADOWMAP);
-	r_quad.bind();
-	glDrawElements(GL_TRIANGLES, 6,GL_UNSIGNED_INT, 0);
-	
-	glUseProgram(0);
-	glActiveTexture(at);
+   GLint at;
+   glUseProgram(shader_fsq.program);
+   
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+   glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
+   glBindTexture(GL_TEXTURE_2D, tex_id);
+   glUniform1i(shader_fsq["uTexture"], TEXTURE_SHADOWMAP);
+   r_quad.bind();
+   glDrawElements(GL_TRIANGLES, 6,GL_UNSIGNED_INT, 0);
+   
+   glUseProgram(0);
+   glActiveTexture(at);
 }
 
 
@@ -580,9 +628,9 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
       if (!depthOnly) {
          glDisable(GL_CULL_FACE);
       }
-      //draw_cameramen(sh, stack);
+      draw_cameramen(sh, stack);
             check_gl_errors(__LINE__, __FILE__);
-      //draw_trees(sh, stack);
+      draw_trees(sh, stack);
             check_gl_errors(__LINE__, __FILE__);
       draw_lamps(sh, stack);
             check_gl_errors(__LINE__, __FILE__);
@@ -632,10 +680,10 @@ int main(int argc, char** argv) {
    r_quad = shape_maker::quad();
    
    renderable r_cube;
-	shape s_cube;
-	shape_maker::cube(s_cube);
-	s_cube.compute_edges();
-	s_cube.to_renderable(r_cube);
+   shape s_cube;
+   shape_maker::cube(s_cube);
+   s_cube.compute_edges();
+   s_cube.to_renderable(r_cube);
 
    // prepare the track
       r_track.create();
@@ -647,6 +695,8 @@ int main(int argc, char** argv) {
       std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
       r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
 
+      //generateTrackVertexNormals(r.t(), r_track);
+
 
    // prepare the terrain
       r_terrain.create();
@@ -654,6 +704,8 @@ int main(int argc, char** argv) {
       
       std::vector<GLfloat> terrainTextureCoords = generateTerrainTextureCoords(r.ter());
       r_terrain.add_vertex_attribute<GLfloat>(&terrainTextureCoords[0], terrainTextureCoords.size(), 4, 2);
+
+      generateTerrainVertexNormals(r.ter(), r_terrain);
    
    // prepare the debug trees
       r_trees.create();
@@ -706,11 +758,11 @@ int main(int argc, char** argv) {
    Projector sunProjector(bbox_scene, -r.sunlight_direction());
    
    glUseProgram(shader_depth.program);
-	glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
-	
-	frame_buffer_object fbo;
-	unsigned int shadowmapSize = 2048;
-	fbo.create(shadowmapSize, shadowmapSize);
+   glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
+   
+   frame_buffer_object fbo;
+   unsigned int shadowmapSize = 2048;
+   fbo.create(shadowmapSize, shadowmapSize);
    
 
    // initialize the lamps' and their lights' positions
@@ -740,10 +792,10 @@ int main(int argc, char** argv) {
 
       
       // ci prepariamo a disegnare il buffer per la shadowmap
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo.id_fbo);
-		glViewport(0, 0, shadowmapSize, shadowmapSize);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo.id_fbo);
+      glViewport(0, 0, shadowmapSize, shadowmapSize);
+      glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+      
       // primo passaggio:
       // calcoliamo solo il depth buffer
       draw_scene(stack, true);
@@ -751,13 +803,13 @@ int main(int argc, char** argv) {
       
       // bind the shadow map to the shader and update the sun's uniforms
       glUseProgram(shader_world.program);
-   	glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
-	   glBindTexture(GL_TEXTURE_2D, fbo.id_tex);
-	   glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
+      glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
+      glBindTexture(GL_TEXTURE_2D, fbo.id_tex);
+      glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
       glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
-	   glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
-	   glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));
-	   glUseProgram(0);
+      glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
+      glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));
+      glUseProgram(0);
       
       
       // ci prepariamo a disegnare il buffer che andrà sullo schermo
@@ -769,35 +821,35 @@ int main(int argc, char** argv) {
       draw_scene(stack, false);
       
       if (debugView) {
-		   // draw the light frustum
-		   r_cube.bind();
-		   stack.push();
-		   stack.load(inverse(sunProjector.lightMatrix()));   // draw a cube around the sun's clip space
-		   glUseProgram(shader_basic.program);
-		   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
-		   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-		   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-		   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-		   stack.pop();
-		   
-		   // draw the world's bounding box
-		   stack.push();
-		   stack.load_identity();
-		   stack.mult(glm::translate(glm::mat4(1.f), bbox_scene.center()));
-		   stack.mult(glm::scale(glm::mat4(1.f), glm::abs(bbox_scene.max-bbox_scene.min)/2.f));
-		   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
-		   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-		   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-		   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-		   stack.pop();
-		   
-   		// show the shadow map 
-		   glViewport(0, 0, 200, 200);
-		   glDisable(GL_DEPTH_TEST);
-		   draw_texture(fbo.id_tex);
-		   glEnable(GL_DEPTH_TEST);
-		   glViewport(0, 0, width, height);
-		}
+         // draw the light frustum
+         r_cube.bind();
+         stack.push();
+         stack.load(inverse(sunProjector.lightMatrix()));   // draw a cube around the sun's clip space
+         glUseProgram(shader_basic.program);
+         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
+         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
+         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+         stack.pop();
+         
+         // draw the world's bounding box
+         stack.push();
+         stack.load_identity();
+         stack.mult(glm::translate(glm::mat4(1.f), bbox_scene.center()));
+         stack.mult(glm::scale(glm::mat4(1.f), glm::abs(bbox_scene.max-bbox_scene.min)/2.f));
+         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
+         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
+         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+         stack.pop();
+         
+         // show the shadow map 
+         glViewport(0, 0, 200, 200);
+         glDisable(GL_DEPTH_TEST);
+         draw_texture(fbo.id_tex);
+         glEnable(GL_DEPTH_TEST);
+         glViewport(0, 0, width, height);
+      }
 
       
       // update camera view according to incoming input
@@ -823,6 +875,7 @@ int main(int argc, char** argv) {
       
       glUseProgram(shader_world.program);  
       glUniformMatrix4fv(shader_world["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
+      glUniform1f(shader_world["uDrawShadows"], (drawShadows)?(1.0):(0.0));
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
       
