@@ -318,6 +318,22 @@ void generateTerrainVertexNormals(terrain t, renderable& r) {
     r.add_vertex_attribute<float>(&normals[0], X * Z * 3, 2, 3);
 }
 
+void generateTrackVertexNormals(track t, renderable& r) {
+    unsigned int size = t.curbs[0].size();
+
+    std::vector<float> normals(2 * 3 * size);
+    for (unsigned int i = 0; i < size; ++i) {
+        glm::vec3 V0 = t.curbs[0][(i + 1) % size] - t.curbs[0][i];
+        glm::vec3 V1 = t.curbs[1][(i + 1) % size] - t.curbs[0][i];
+        glm::vec3 U = t.curbs[1][i] - t.curbs[0][i];
+
+        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V0, U)));
+        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V1, U)));
+    }
+
+    r.add_vertex_attribute<float>(&normals[0], 2 * 3 * size, 2, 3);
+}
+
 // returns the vector pointing from the given point to the curb vertex closest to it
 glm::vec3 findClosestCurbVertex(track t, glm::vec3 lamp_position) {
    std::vector<glm::vec3> curbs = t.curbs[0];
@@ -451,7 +467,7 @@ void draw_track(shader sh, matrix_stack stack) {
    
    glActiveTexture(GL_TEXTURE0 + TEXTURE_ROAD);
    glBindTexture(GL_TEXTURE_2D, texture_track_diffuse.id);
-   glUniform1i(sh["uMode"], SHADING_TEXTURED_FLAT);
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
    glUniform1i(sh["uColorImage"], TEXTURE_ROAD);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_track().mode, r_track().count, r_track().itype, 0);
@@ -679,6 +695,8 @@ int main(int argc, char** argv) {
       
       std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
       r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
+
+      generateTrackVertexNormals(r.t(), r_track);
 
 
    // prepare the terrain
