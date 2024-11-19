@@ -29,12 +29,13 @@
 #include "../common/carousel/carousel_to_renderable.h"
 #include "../common/carousel/carousel_loader.h"
 
+#include "carousel_augment.h"
 #include "camera_controls.h"
+#include "transformations.h"
 #include "projector.h"
 
-#include <iostream>
 #include <algorithm>
-#include <glm/gtx/quaternion.hpp>
+#include <glm/glm.hpp>
 
 #define BASE_DIR std::string("C:/Users/Slaimon/Desktop/unipi/CG/CarOusel/")
 
@@ -59,8 +60,6 @@ void printVec3 (glm::vec3 v) {
 }
 
 
-
-
 int width = 800;
 int height = 800;
 
@@ -83,7 +82,6 @@ typedef enum textureSlot {
    TEXTURE_SHADOWMAP
 } textureSlot_t;
 
-#define N_GROUND_TILES 20.0   // the terrain is covered with 20^2 tiles
 texture texture_grass_diffuse, texture_track_diffuse;
 void load_textures() {
    texture_grass_diffuse.load(textures_path + "grass_diff.png", TEXTURE_GRASS);
@@ -219,203 +217,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
 }
 
-
-// N = length of the curb in vertices
-std::vector<GLuint> generateTrackTriangles(int N) {
-   std::vector<GLuint> v;
-   N = 2*N;       // the track vertex buffer is twice as long as the curb
-   v.resize(3*N); // each triangle takes up 3 slots
-   int slot = 0;
-   for(int vertex = 0; vertex < N; vertex += 2) {  // indices specified in right-hand winding order (normal = up)
-      v[slot] = vertex % N;
-      v[slot+1] = (vertex+1) % N;
-      v[slot+2] = (vertex+3) % N;
-      v[slot+3] = vertex % N;
-      v[slot+4] = (vertex+3) % N;
-      v[slot+5] = (vertex+2) % N;
-      slot += 6; 
-   }
-   
-   return v;
-}
-
-std::vector<GLfloat> generateTrackTextureCoords(track t) {
-   std::vector<GLfloat> v;
-   
-   std::vector<glm::vec3> left = t.curbs[1];
-   std::vector<glm::vec3> right = t.curbs[0];
-   
-   unsigned int N = left.size();
-   v.resize(4*N);         // one vertex for each side, each 2D vertex takes up 2 slots
-   
-   float step = glm::length(left[100]-left[0]);   // we take the length of the first 100 curb segments as a unit; this is arbitrary
-   
-   float d_left = 0;
-   float d_right = 0;
-   unsigned int slot = 0;
-   for(unsigned int i = 0; i < N; i++) {
-      v[slot] = d_left / step;
-      v[slot+1] = 0.f;
-      v[slot+2] = d_left / step;
-      v[slot+3] = 1.f;
-
-      d_left += glm::length(left[(i+1) % N] - left[i]);
-      d_right += glm::length(right[(i+1) % N] - right[i]);
-
-      slot += 4;
-   }
-   
-   return v;
-}
-
-std::vector<GLfloat> generateTerrainTextureCoords(terrain t) {
-   std::vector<GLfloat> v;
-   const unsigned int Z = (t.size_pix[1]);
-   const unsigned int X = (t.size_pix[0]);
-   v.resize(2*Z*X);
-   
-   unsigned int slot = 0;
-   for (unsigned int iz = 0; iz < Z; ++iz) {
-      for (unsigned int ix = 0; ix < X; ++ix) {
-         v[slot] = N_GROUND_TILES * ix / float(X);
-         v[slot+1] = N_GROUND_TILES * iz / float(Z);
-         slot += 2;
-      }
-   }
-   
-   return v;
-}
-
-void pushVec3ToBuffer(std::vector<float>& buffer, glm::vec3 v) {
-    buffer.push_back(v.x);
-    buffer.push_back(v.y);
-    buffer.push_back(v.z);
-}
-
-glm::vec3 getTerrainVertex(terrain t, const unsigned int i, const unsigned int j) {
-    const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
-    const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
-
-    float x = t.rect_xz[0] + (i / float(X)) * t.rect_xz[2];
-    float z = t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3];
-
-    return glm::vec3(x, t.hf((i>=X)?(X-1):(i), (j>=Z)?(Z-1):(j)), z);
-}
-
-void generateTerrainVertexNormals(terrain t, renderable& r) {
-    const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
-    const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
-    
-    std::vector<float> normals;
-    for (unsigned int iz = 0; iz < Z; ++iz) {
-        for (unsigned int ix = 0; ix < X; ++ix) {
-            glm::vec3 V = getTerrainVertex(t, ix + 1, iz) - getTerrainVertex(t, ix, iz);
-            glm::vec3 U = getTerrainVertex(t, ix, iz + 1) - getTerrainVertex(t, ix, iz);
-            pushVec3ToBuffer(normals, glm::normalize(glm::cross(U, V)));
-        }
-    }
-
-    r.add_vertex_attribute<float>(&normals[0], X * Z * 3, 2, 3);
-}
-
-void generateTrackVertexNormals(track t, renderable& r) {
-    unsigned int size = t.curbs[0].size();
-
-    std::vector<float> normals(2 * 3 * size);
-    for (unsigned int i = 0; i < size; ++i) {
-        glm::vec3 V0 = t.curbs[0][(i + 1) % size] - t.curbs[0][i];
-        glm::vec3 V1 = t.curbs[1][(i + 1) % size] - t.curbs[0][i];
-        glm::vec3 U = t.curbs[1][i] - t.curbs[0][i];
-
-        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V0, U)));
-        pushVec3ToBuffer(normals, glm::normalize(glm::cross(V1, U)));
-    }
-
-    r.add_vertex_attribute<float>(&normals[0], 2 * 3 * size, 2, 3);
-}
-
-// returns the vector pointing from the given point to the curb vertex closest to it
-glm::vec3 findClosestCurbVertex(track t, glm::vec3 lamp_position) {
-   std::vector<glm::vec3> curbs = t.curbs[0];
-   float min_dist = 9e99;
-   glm::vec3 closest = glm::vec3(0.f);
-   for(unsigned int i=0; i<curbs.size(); i++) {
-      float dist = glm::length(lamp_position-curbs[i]);
-      if (dist < min_dist) {
-         min_dist = dist;
-         closest = curbs[i];
-      }
-   }
-   
-   glm::vec3 diff = lamp_position-closest;
-   return glm::normalize(glm::vec3(diff.x, 0.f, diff.z));
-}
-
-// returns a rotation matrix that maps vector a to vector b
-glm::mat4 alignVector(glm::vec3 a, glm::vec3 b) {
-      float angle = glm::acos(glm::dot(a, b));
-      glm::vec3 axis = glm::cross(a, b);
-      // rotate around the axis cross(x,c) by an angle acos(dot(x,c))
-      return  glm::rotate(glm::mat4(1.f), angle, axis);
-}
-
-// returns a vector containing the direction each lamp should face as a rotation matrix
-std::vector<glm::mat4> computeLampOrientation(track t, std::vector<stick_object> lamps) {
-   std::vector<glm::mat4> result(lamps.size());
-   for (unsigned int i = 0; i < result.size(); i++) {
-      glm::vec3 closest = findClosestCurbVertex(t, lamps[i].pos);
-      result[i] = alignVector(glm::vec3(1.,0.,0.f), closest);
-   }
-   
-   return result;
-}
-
-// returns a vector containing the transformation to be applied to each lamp
-std::vector<glm::mat4> lampTransform(track t, std::vector<stick_object> lamps) {
-   std::vector<glm::mat4> result(lamps.size());
-   std::vector<glm::mat4> rotations = computeLampOrientation(t,lamps);
-   
-   glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(1./20.f));
-   glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.1,0.48f,0.));
-   for (unsigned int i = 0; i < result.size(); i++) {
-      glm::mat4 T2 = glm::translate(glm::mat4(1.f), scale*(lamps[i].pos-center));
-      result[i] = T2*rotations[i]*S*T;
-   }
-   
-   return result;
-}
-
-std::vector<glm::vec3> lampLightPositions(std::vector<glm::mat4> lampTransforms) {
-   std::vector<glm::vec3> result(lampTransforms.size());
-   glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.1,0.45,0.f));
-   for (unsigned int i = 0; i<result.size(); i++)
-      result[i] = lampTransforms[i]*T*glm::vec4(0.f,0.f,0.f,1.f);
-
-   return result;
-}
-
-float random(float low, float high) {
-    return low + (high - low) * (std::rand() / (float)RAND_MAX);
-}
-
-glm::mat4 randomRotation() {
-   float angle = random(0.f, 6.28f);
-   return glm::rotate(glm::mat4(1.f), angle, glm::vec3(0.f,1.f,0.f));  
-}
-
-std::vector<glm::mat4> treeTransform(std::vector<stick_object> trees) {
-   std::vector<glm::mat4> result(trees.size());
-   
-   glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(0.f,0.43f,0.f));
-   for (unsigned int i = 0; i < result.size(); i++) {
-      glm::mat4 T2 = glm::translate(glm::mat4(1.f), scale*(trees[i].pos-center));
-      glm::mat4 R = randomRotation();
-      glm::mat4 S = glm::scale(glm::mat4(1.f), glm::vec3(1. / 12.f) * random(0.8f, 1.2f));
-      result[i] = T2*R*S*T;
-   }
-
-   return result;
-}
 
 race r;
 shader shader_basic, shader_world, shader_depth;
@@ -766,14 +567,14 @@ int main(int argc, char** argv) {
    
 
    // initialize the lamps' and their lights' positions
-   lampT = lampTransform(r.t(), r.lamps());
+   lampT = lampTransform(r.t(), r.lamps(), scale, center);
    lampLightPos = lampLightPositions(lampT);
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
    glUseProgram(0);
    
    // initialize the trees' positions
-   treeT = treeTransform(r.trees());
+   treeT = treeTransform(r.trees(), scale, center);
    
 
    glEnable(GL_DEPTH_TEST);
@@ -889,5 +690,3 @@ int main(int argc, char** argv) {
    glfwTerminate();
    return 0;
 }
-
- 

@@ -72,10 +72,10 @@ void main(void) {
    if (uMode == 1) { // normal map
       tangent = normalize(aTangent);
       bitangent = normalize(cross(aNormal,tangent));
-      TF[0]   = tangent;
-      TF[1]   = bitangent;
-      TF[2]   = normalize(aNormal);
-      TF      = transpose(TF);
+      TF[0] = tangent;
+      TF[1] = bitangent;
+      TF[2] = normalize(aNormal);
+      TF    = transpose(TF);
 
       vSunTS = TF * (inverse(uModel)*vec4(uSun,0.0)).xyz;
       vTexCoord = aTexCoord;
