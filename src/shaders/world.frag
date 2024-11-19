@@ -28,6 +28,7 @@ in vec3 vSunVS;
 in vec3 vSunTS;
 
 // Shadow Mapping
+#define BIAS_PCF     0.005
 #define BIAS_A       0.01
 #define BIAS_MIN_E   0.001
 #define BIAS_MAX_E   0.2
@@ -50,6 +51,10 @@ uniform sampler2D uNormalmapImage;
 uniform sampler2D uShadowMap;
 uniform int uShadowMapSize;
 
+
+float sunIntensity() {
+   return max(0.0, dot(uSun, vec3(0.0,1.0,0.0)));
+}
 
 // L and N must be normalized
 float lightIntensity(vec3 L, vec3 N) {
@@ -91,6 +96,9 @@ float isLit(vec3 L, vec3 N) {
 }
 
 float isLitPCF(vec3 L, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+
    float storedDepth;
    float lit = 1.0;
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
@@ -98,7 +106,7 @@ float isLitPCF(vec3 L, vec3 N) {
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
          storedDepth =  texture(uShadowMap, pLS.xy + vec2(-2.0+x,-2.0+y)/uShadowMapSize).x;
-         if(storedDepth + BIAS_A < pLS.z )    
+         if(storedDepth + BIAS_PCF < pLS.z )    
             lit  -= 1.0/25.0;
       }
    }
@@ -171,5 +179,5 @@ void main(void) {
    
    color = diffuseColor *
             (vec4(AMBIENT_LIGHT,1.0) +
-            sunContrib * isLitPCF(sunToSurfaceVS, surfaceNormal));
+            sunIntensity() * sunContrib * isLitPCF(sunToSurfaceVS, surfaceNormal));
 } 

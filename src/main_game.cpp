@@ -404,37 +404,36 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
    else {
       sh = shader_depth;
-      glDisable(GL_CULL_FACE);   // disable backface culling during first pass
    }
    
    // draw terrain and track
-      if (!depthOnly) {
-         glFrontFace(GL_CW);
-         glEnable(GL_CULL_FACE);
-      }
-      draw_terrain(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
-      draw_track(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
-   
-   // car models have opposite polygon handedness
-      if (!depthOnly) {
-         glFrontFace(GL_CCW);
-         glEnable(GL_CULL_FACE);
-      }
-      draw_cars(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
-   
-   // disable backface culling because these models have inconsistent polygon handedness
-      if (!depthOnly) {
-         glDisable(GL_CULL_FACE);
-      }
-      draw_cameramen(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
-      draw_trees(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
-      draw_lamps(sh, stack);
-            check_gl_errors(__LINE__, __FILE__);
+   if (depthOnly)
+       glDisable(GL_CULL_FACE);   // terrain and track are not watertight
+   else
+       glEnable(GL_CULL_FACE);
+
+   glFrontFace(GL_CCW);
+   draw_terrain(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
+   draw_track(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
+
+   // in the depth pass, cull the front face from the following watertight models
+   if (depthOnly) {
+      glEnable(GL_CULL_FACE);
+      glCullFace(GL_FRONT);
+   }
+
+   // the following models have opposite polygon handedness
+   glFrontFace(GL_CW);
+   draw_cars(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
+   draw_cameramen(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
+   draw_trees(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
+   draw_lamps(sh, stack);
+    check_gl_errors(__LINE__, __FILE__);
    
    //draw_debugTrees(stack);
 }
