@@ -104,7 +104,7 @@ void load_models() {
 // the passed shader MUST be already active!
 void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox, shader s) {
    float scale = 1.f / bbox.diagonal();
-   stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(scale, scale, scale)));
+   stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(scale)));
    stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(-bbox.center())));
    
    // render each renderable
@@ -381,14 +381,14 @@ shader shader_fsq;
 renderable r_quad;
 void draw_texture(GLint tex_id) {
    GLint at;
-   glUseProgram(shader_fsq.program);
-   
    glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+   glUseProgram(shader_fsq.program);
+
    glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
    glBindTexture(GL_TEXTURE_2D, tex_id);
    glUniform1i(shader_fsq["uTexture"], TEXTURE_SHADOWMAP);
    r_quad.bind();
-   glDrawElements(GL_TRIANGLES, 6,GL_UNSIGNED_INT, 0);
+   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
    
    glUseProgram(0);
    glActiveTexture(at);
@@ -522,7 +522,7 @@ int main(int argc, char** argv) {
    shader_world.create_program((shaders_path + "world.vert").c_str(), (shaders_path + "world.frag").c_str());
    shader_depth.create_program((shaders_path + "depth.vert").c_str(), (shaders_path + "depth.frag").c_str());
    shader_fsq.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq.frag").c_str());
-   
+      
    glm::mat4 proj = glm::perspective(glm::radians(45.f), (float)width/(float)height, 0.001f, 10.f);
    
    load_textures();
@@ -561,9 +561,12 @@ int main(int argc, char** argv) {
    glUseProgram(shader_depth.program);
    glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
    
-   frame_buffer_object fbo;
+   frame_buffer_object fbo_shadowmap;
    unsigned int shadowmapSize = 2048;
-   fbo.create(shadowmapSize, shadowmapSize);
+   fbo_shadowmap.create(shadowmapSize, shadowmapSize);
+   glUseProgram(shader_world.program);
+   glUniform1i(shader_world["uShadowMapSize"], shadowmapSize);
+   glUseProgram(0);
    
 
    // initialize the lamps' and their lights' positions
@@ -593,7 +596,7 @@ int main(int argc, char** argv) {
 
       
       // ci prepariamo a disegnare il buffer per la shadowmap
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo.id_fbo);
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo_shadowmap.id_fbo);
       glViewport(0, 0, shadowmapSize, shadowmapSize);
       glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
       
@@ -605,7 +608,7 @@ int main(int argc, char** argv) {
       // bind the shadow map to the shader and update the sun's uniforms
       glUseProgram(shader_world.program);
       glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
-      glBindTexture(GL_TEXTURE_2D, fbo.id_tex);
+      glBindTexture(GL_TEXTURE_2D, fbo_shadowmap.id_tex);
       glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
       glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
       glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
@@ -647,7 +650,7 @@ int main(int argc, char** argv) {
          // show the shadow map 
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(fbo.id_tex);
+         draw_texture(fbo_shadowmap.id_tex);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }

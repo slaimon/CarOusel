@@ -48,6 +48,7 @@ uniform int uMode;
 uniform sampler2D uColorImage;
 uniform sampler2D uNormalmapImage;
 uniform sampler2D uShadowMap;
+uniform int uShadowMapSize;
 
 
 // L and N must be normalized
@@ -87,6 +88,22 @@ float isLit(vec3 L, vec3 N) {
    float depth = texture(uShadowMap,pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
+}
+
+float isLitPCF(vec3 L, vec3 N) {
+   float storedDepth;
+   float lit = 1.0;
+   vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
+   
+   for(float x = 0.0; x < 5.0; x+=1.0) {
+      for(float y = 0.0; y < 5.0; y+=1.0) {
+         storedDepth =  texture(uShadowMap, pLS.xy + vec2(-2.0+x,-2.0+y)/uShadowMapSize).x;
+         if(storedDepth + BIAS_A < pLS.z )    
+            lit  -= 1.0/25.0;
+      }
+   }
+   
+   return lit;
 }
 
 // this produce the Hue for v:0..1 (for debug purposes)
@@ -154,5 +171,5 @@ void main(void) {
    
    color = diffuseColor *
             (vec4(AMBIENT_LIGHT,1.0) +
-            sunContrib * isLit(sunToSurfaceVS, surfaceNormal));
+            sunContrib * isLitPCF(sunToSurfaceVS, surfaceNormal));
 } 
