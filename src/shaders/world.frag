@@ -98,6 +98,9 @@ float isLit(vec3 L, vec3 N) {
 float isLitPCF(vec3 L, vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
+   // the pixel is in shadow if the normal points away from the light source
+   if (acos(dot(normalize(L), normalize(N))) > radians(90.0))
+      return 0.0;
 
    float storedDepth;
    float lit = 1.0;
