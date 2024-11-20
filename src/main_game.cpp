@@ -555,7 +555,7 @@ int main(int argc, char** argv) {
    bbox_scene.min = glm::vec3(stack.m() * glm::vec4(bbox_scene.min, 1.0));
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
-   Projector sunProjector(bbox_scene, shadowmapSize, -r.sunlight_direction());
+   DirectionalProjector sunProjector(bbox_scene, shadowmapSize, -r.sunlight_direction());
    
    glUseProgram(shader_depth.program);
    glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
