@@ -3,12 +3,15 @@
 
 #include "../common/box3.h"
 #include "../common/texture.h"
+#include "../common/frame_buffer_object.h"
 
 // the Projector class represents a directional light
 class Projector {
 	   glm::mat4 viewMatrix, projMatrix;
 	   box3 sceneBoundingBox;
 	   glm::vec3 lightDirection;
+	   unsigned int shadowmapSize;
+	   frame_buffer_object shadowmapFBO;
 	   
 	   void update() {
 	      viewMatrix = lookAt(-lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
@@ -41,9 +44,11 @@ class Projector {
 	   }
 
    public:
-	   Projector(box3 box, glm::vec3 light_direction = glm::vec3(0.f,-1.f,0.f)) {
+	   Projector(box3 box, unsigned int shadowmap_size, glm::vec3 light_direction = glm::vec3(0.f,-1.f,0.f)) {
 	      sceneBoundingBox = box;
 	      lightDirection = glm::normalize(light_direction);
+		  shadowmapSize = shadowmap_size;
+		  shadowmapFBO.create(shadowmapSize, shadowmapSize);
 	   }
 
 	   void setDirection(glm::vec3 light_direction) {
@@ -53,5 +58,17 @@ class Projector {
 	   
 	   glm::mat4 lightMatrix() {
 		   return projMatrix*viewMatrix;
+	   }
+
+	   unsigned int getShadowmapSize() {
+		   return shadowmapSize;
+	   }
+
+	   unsigned int getTextureID() {
+		   return shadowmapFBO.id_tex;
+	   }
+
+	   unsigned int getFrameBufferID() {
+		   return shadowmapFBO.id_fbo;
 	   }
 };

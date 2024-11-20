@@ -15,9 +15,6 @@
 #include "../common/shaders.h"
 #include "../common/simple_shapes.h"
 #include "../common/matrix_stack.h"
-#include "../common/intersection.h"
-#include "../common/trackball.h"
-#include "../common/frame_buffer_object.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -60,9 +57,10 @@ void printVec3 (glm::vec3 v) {
 }
 
 
-int width = 800;
-int height = 800;
+int width = 1440;
+int height = 900;
 
+unsigned int shadowmapSize = 2048;
 
 // textures and shading
 typedef enum shadingMode {
@@ -555,14 +553,11 @@ int main(int argc, char** argv) {
    bbox_scene.min = glm::vec3(stack.m() * glm::vec4(bbox_scene.min, 1.0));
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
-   Projector sunProjector(bbox_scene, -r.sunlight_direction());
+   Projector sunProjector(bbox_scene, shadowmapSize, -r.sunlight_direction());
    
    glUseProgram(shader_depth.program);
    glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
    
-   frame_buffer_object fbo_shadowmap;
-   unsigned int shadowmapSize = 2048;
-   fbo_shadowmap.create(shadowmapSize, shadowmapSize);
    glUseProgram(shader_world.program);
    glUniform1i(shader_world["uShadowMapSize"], shadowmapSize);
    glUseProgram(0);
@@ -595,7 +590,7 @@ int main(int argc, char** argv) {
 
       
       // ci prepariamo a disegnare il buffer per la shadowmap
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo_shadowmap.id_fbo);
+      glBindFramebuffer(GL_FRAMEBUFFER, sunProjector.getFrameBufferID());
       glViewport(0, 0, shadowmapSize, shadowmapSize);
       glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
       
@@ -607,7 +602,7 @@ int main(int argc, char** argv) {
       // bind the shadow map to the shader and update the sun's uniforms
       glUseProgram(shader_world.program);
       glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
-      glBindTexture(GL_TEXTURE_2D, fbo_shadowmap.id_tex);
+      glBindTexture(GL_TEXTURE_2D, sunProjector.getTextureID());
       glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
       glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
       glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
@@ -649,7 +644,7 @@ int main(int argc, char** argv) {
          // show the shadow map 
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(fbo_shadowmap.id_tex);
+         draw_texture(sunProjector.getTextureID());
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }

@@ -149,7 +149,6 @@ void main(void) {
    if (uMode == 2) {
       surfaceNormal = normalize(cross(dFdx(vPos),dFdy(vPos)));
       sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
-      //sunIntensitySpec = specularIntensity(normalize(sunToSurfaceVS), normalize(surfaceNormal), normalize(-vPos));
       diffuseColor = vec4(uColor, 1.0);
    }
    // textured phong shading
