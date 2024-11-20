@@ -26,7 +26,7 @@ out vec3 vSunWS;
 // UNIFORMS:
 
 // positions of the lights in worldspace
-uniform vec3[NLAMPS] uLamps;
+uniform vec3 uLamps[NLAMPS];
 uniform vec3 uSun;
 uniform float uLampState;
 
@@ -61,11 +61,12 @@ void main(void) {
    mat3 TF;
    
    vSunVS = (uView*vec4(uSun,0.0)).xyz;
-   /*
-   for (int i = 0; i < NLAMPS; i++) {
-      vLampVS[i] = (uView*vec4(uLamps[i],1.0)).xyz;
+   
+   if (uLampState == 1.0) {
+      for (int i = 0; i < NLAMPS; i++) {
+         vLampVS[i] = (uView*vec4(uLamps[i],1.0)).xyz;
+      }
    }
-   */
    
    if (uMode == 0)   // textured flat shading
       vTexCoord = aTexCoord;

@@ -319,28 +319,28 @@ void draw_cameramen(shader sh, matrix_stack stack) {
 renderable r_sphere;
 std::vector<glm::mat4> lampT;
 std::vector<glm::vec3> lampLightPos;
+void draw_lightBulbs(shader sh) {
+   glUseProgram(sh.program);
+   for (unsigned int i = 0; i < lampT.size(); ++i) {
+      r_sphere.bind();
+      glm::mat4 model = glm::translate(glm::mat4(1.f), lampLightPos[i]);
+                model = glm::scale(model, glm::vec3(0.00075f));
+      glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &model[0][0]);
+      glUniform3f(sh["uColor"], 1.f, 0.63f, 0.08f);
+      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glDrawElements(r_sphere().mode, r_sphere().count, r_sphere().itype, 0);
+   }
+   glUseProgram(0);
+}
 void draw_lamps(shader sh, matrix_stack stack) {
    glUseProgram(sh.program);
-   for (int i = 0; i < lampT.size(); i++) {
+   for (unsigned int i = 0; i < lampT.size(); ++i) {
       stack.push();
-
-      // draw the lamp itself
       stack.load(lampT[i]);
 
       glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       drawLoadedModel(stack, model_lamp, bbox_lamp, sh);
-   
-      /*
-      // draw the light sphere on top
-      r_sphere.bind();
-      stack.load_identity();
-      stack.mult(glm::translate(glm::mat4(1.f), lampLightPos[i]));
-      stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(0.001f)));
-      glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-      glUniform3f(sh["uColor"], 1.f, 0.63f, 0.08f);
-      glDrawElements(r_sphere().mode, r_sphere().count, r_sphere().itype, 0);
-      */
       
       stack.pop();
    }
@@ -386,6 +386,7 @@ void draw_texture(GLint tex_id) {
    glBindTexture(GL_TEXTURE_2D, tex_id);
    glUniform1i(shader_fsq["uTexture"], TEXTURE_SHADOWMAP);
    r_quad.bind();
+   glDisable(GL_CULL_FACE);
    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
    
    glUseProgram(0);
@@ -395,22 +396,24 @@ void draw_texture(GLint tex_id) {
 
 void draw_scene(matrix_stack stack, bool depthOnly) {
    shader sh;
-   if (!depthOnly) {
-      draw_frame();
-      draw_sunDir(r.sunlight_direction());
-      sh = shader_world;
+   if (depthOnly) {
+      sh = shader_depth;
    }
    else {
-      sh = shader_depth;
+      //draw_frame();
+      draw_sunDir(r.sunlight_direction());
+      sh = shader_world;
    }
    
    // draw terrain and track
    if (depthOnly)
        glDisable(GL_CULL_FACE);   // terrain and track are not watertight
-   else
+   else {
        glEnable(GL_CULL_FACE);
+       glCullFace(GL_BACK);
+   }
 
-   glFrontFace(GL_CCW);
+   glFrontFace(GL_CW);
    draw_terrain(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
    draw_track(sh, stack);
@@ -423,17 +426,16 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
 
    // the following models have opposite polygon handedness
-   glFrontFace(GL_CW);
-   draw_cars(sh, stack);
+   glFrontFace(GL_CCW);
+   //draw_cars(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
-   draw_cameramen(sh, stack);
+   //draw_cameramen(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
-   draw_trees(sh, stack);
+   //draw_trees(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
-   draw_lamps(sh, stack);
+   //draw_lamps(sh, stack);
+   //draw_lightBulbs(sh);
     check_gl_errors(__LINE__, __FILE__);
-   
-   //draw_debugTrees(stack);
 }
 
 

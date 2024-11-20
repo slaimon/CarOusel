@@ -5,14 +5,14 @@ in vec3 vPos;
 in vec3 vNormal;
 in vec2 vTexCoord;
 
-#define AMBIENT_LIGHT      vec3(0.1,0.1,0.1)
-#define SUNLIGHT_COLOR     vec3(1.0,1.0,1.0)
-#define LAMPLIGHT_COLOR    vec3(1.0,0.9,0.8)
-#define SHININESS          2.0
+#define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
+#define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
+#define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
+#define SHININESS          1.5
 
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  0.5
-#define ATTENUATION_C2  0.0
+#define ATTENUATION_C2  0.1
 #define ATTENUATION_C3  10.0
 
 // spotlight parameters
@@ -52,8 +52,9 @@ uniform sampler2D uShadowMap;
 uniform int uShadowMapSize;
 
 
-float sunIntensity() {
-   return max(0.0, dot(uSun, vec3(0.0,1.0,0.0)));
+float sunlightColor() {
+   //return max(0.0, dot(uSun, vec3(0.0,1.0,0.0))) * SUNLIGHT_COLOR;
+   return vec4(0.,0.,0.,1.);
 }
 
 // L and N must be normalized
@@ -69,7 +70,7 @@ float specularIntensity(vec3 L, vec3 N, vec3 V) {
 }
 /*
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
-   float angle = acos(dot(normalize(lightPos-surfacePos),vec3(0.,-1.0,0.)));
+   float angle = acos(dot(normalize(lightPos-surfacePos),vec3(0.,-1.,0.)));
    
    if (angle < LAMP_ANGLE_IN)
       return 1.0;
@@ -78,12 +79,13 @@ float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
    if (LAMP_ANGLE_OUT < angle)
       return 0.0;
 }
+*/
 
 float attenuation(vec3 lightPos, vec3 surfacePos) {
    float d = length(lightPos-surfacePos);
    return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
 }
-*/
+
 float isLit(vec3 L, vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
@@ -128,9 +130,9 @@ vec3 hsv2rgb(float  v)
 void main(void) { 
    vec3 surfaceNormal;
    vec4 diffuseColor;
-   float sunIntensitySpec = 0.0;
    float sunIntensityDiff;
-   vec4 lampsContrib;
+   float sunIntensitySpec = 0.0;
+   vec4 lampsContrib = vec4(0.0);
    
    vec3 sunToSurfaceVS = normalize(vSunVS-vPos);
    vec3 lampToSurfaceVS;
@@ -169,17 +171,17 @@ void main(void) {
       diffuseColor = vec4(uColor,1.0);
    }
 
-   /*
-   for (int i=0; i<NLAMPS; i++) {
-      lampToSurfaceVS = normalize(vLampVS[i]-vPos);
-      lampsContrib += spotlightIntensity(vLampVS[i], vPos) * lightIntensity(lampToSurfaceVS, surfaceNormal);
+   if (uLampState == 1.0) {
+      for (int i=0; i<NLAMPS; i++) {
+         lampToSurfaceVS = normalize(vLampVS[i]-vPos);
+         lampsContrib += attenuation(vLampVS[i], vPos) *
+                         (lightIntensity(lampToSurfaceVS, surfaceNormal) +
+						  0.5 * specularIntensity(lampToSurfaceVS, surfaceNormal, normalize(-vPos)));
+      }
+      lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0)/NLAMPS;
    }
-   lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0)/NLAMPS;
-   */
-   
-   vec4 sunContrib = sunIntensityDiff * vec4(SUNLIGHT_COLOR,1.0) + sunIntensitySpec * vec4(SUNLIGHT_COLOR,1.0);
    
    color = diffuseColor *
-            (vec4(AMBIENT_LIGHT,1.0) +
-            sunIntensity() * sunContrib * isLitPCF(sunToSurfaceVS, surfaceNormal));
+            (vec4(AMBIENT_LIGHT,1.0) + lampsContrib +
+            sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(sunToSurfaceVS, surfaceNormal));
 } 
