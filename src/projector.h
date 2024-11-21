@@ -1,34 +1,10 @@
 #include <glm/glm.hpp>  
-#include <glm/ext.hpp> 
+#include <glm/ext.hpp>
 
+#include "transformations.h"
 #include "../common/box3.h"
 #include "../common/texture.h"
 #include "../common/frame_buffer_object.h"
-
-inline std::vector<glm::vec4> getBoxCorners(box3 box) {
-   std::vector<glm::vec4> corners(8);
-
-   corners[0] = glm::vec4(box.min, 1.0);
-   corners[1] = glm::vec4(box.min.x, box.min.y, box.max.z, 1.0);
-   corners[2] = glm::vec4(box.min.x, box.max.y, box.max.z, 1.0);
-   corners[3] = glm::vec4(box.min.x, box.max.y, box.min.z, 1.0);
-   corners[4] = glm::vec4(box.max.x, box.max.y, box.min.z, 1.0);
-   corners[5] = glm::vec4(box.max.x, box.min.y, box.min.z, 1.0);
-   corners[6] = glm::vec4(box.max.x, box.min.y, box.max.z, 1.0);
-   corners[7] = glm::vec4(box.max, 1.0);
-
-   return corners;
-}
-
-inline box3 transformBoundingBox(box3 box, glm::mat4 T) {
-   box3 aabb(0.0);
-
-   std::vector<glm::vec4> corners = getBoxCorners(box);
-   for (int i = 0; i < 8; i++)
-      aabb.add(glm::vec3(T * corners[i]));
-
-   return aabb;
-}
 
 // Abstract Class; represents a light capable of casting shadows
 class Projector {
@@ -84,8 +60,8 @@ class DirectionalProjector : public Projector {
          box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
          
          // and that gives us the parameters of the light's view frustum
-         float farPlane = std::max(-aabb.max.z, -aabb.min.z);
-         float nearPlane = std::min(-aabb.max.z, -aabb.min.z);
+         float farPlane = -std::min(aabb.max.z, aabb.min.z);
+         float nearPlane = -std::max(aabb.max.z, aabb.min.z);
          projMatrix =  glm::ortho(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, nearPlane, farPlane);
       }
 
@@ -107,17 +83,15 @@ class PositionalProjector : public Projector {
       glm::vec3 lightPosition;
 
       void update() {
-         viewMatrix = glm::lookAt(lightPosition, glm::vec3(lightPosition.x,0.0,lightPosition.z), glm::vec3(0.,0.,1.));
+         viewMatrix = glm::lookAt(lightPosition, glm::vec3(lightPosition.x,0.0,lightPosition.z), glm::vec3(1.,0.,0.));
          box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
 
-         float epsilon = 0.001;
-         float nearPlane = 0.01;
-         float X1 = abs(aabb.max.z) + epsilon;
-         float farPlane = abs(aabb.min.z) + epsilon;
-         projMatrix = glm::frustum(nearPlane * (abs(aabb.min.x) / X1),
-                                   nearPlane * (abs(aabb.max.x) / X1),
-                                   nearPlane * (abs(aabb.min.y) / X1),
-                                   nearPlane * (abs(aabb.max.y) / X1),
+         float nearPlane = 0.001;
+         float farPlane = abs(aabb.min.z);
+         projMatrix = glm::frustum(nearPlane * aabb.min.x / farPlane,
+                                   nearPlane * aabb.max.x / farPlane,
+                                   nearPlane * aabb.min.y / farPlane,
+                                   nearPlane * aabb.max.y / farPlane,
                                    nearPlane, farPlane);
       }
 

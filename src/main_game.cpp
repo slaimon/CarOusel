@@ -62,6 +62,13 @@ int height = 900;
 
 unsigned int shadowmapSize = 2048;
 
+#define COLOR_RED    glm::vec3(1.f,0.f,0.f)
+#define COLOR_GREEN  glm::vec3(0.f,1.f,0.f)
+#define COLOR_BLUE   glm::vec3(0.f,0.f,1.f)
+#define COLOR_BLACK  glm::vec3(0.f,0.f,0.f)
+#define COLOR_WHITE  glm::vec3(1.f,1.f,1.f)
+#define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
+
 // textures and shading
 typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
@@ -230,6 +237,8 @@ void draw_frame() {
 
 void draw_sunDir(glm::vec3 sundir) {
    glUseProgram(shader_basic.program);
+   glUniform3f(shader_basic["uColor"], 0.f, 0.f, 0.f);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
    glColor3f(0, 0, 1);
    glBegin(GL_LINES);
    glVertex3f(0, 0, 0);
@@ -261,7 +270,7 @@ void draw_track(shader sh, matrix_stack stack) {
 
    // we bump the track upwards to prevent it from falling under the terrain
    stack.push();
-   stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.21f, 0.f)));
+   stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.15f, 0.f)));
    
    glActiveTexture(GL_TEXTURE0 + TEXTURE_ROAD);
    glBindTexture(GL_TEXTURE_2D, texture_track_diffuse.id);
@@ -395,20 +404,20 @@ void draw_texture(GLint tex_id) {
 
 renderable r_cube;
 // draws the frustum represented by the given projection matrix
-void draw_frustum(glm::mat4 projMatrix) {
+void draw_frustum(glm::mat4 projMatrix, glm::vec3 color) {
    r_cube.bind();
    glUseProgram(shader_basic.program);
-   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
+   glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::inverse(projMatrix)[0][0]);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
    glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
 }
 
 // draws a box3
-void draw_bbox(box3 bbox) {
+void draw_bbox(box3 bbox, glm::vec3 color) {
    glm::mat4 T = glm::translate(glm::mat4(1.f), bbox.center());
              T = glm::scale(T, glm::abs(bbox.max - bbox.min) / 2.f);
-   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
+   glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &T[0][0]);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
    glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
@@ -591,7 +600,7 @@ int main(int argc, char** argv) {
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
    glUseProgram(0);
-   PositionalProjector lampProjector(bbox_scene, shadowmapSize, r.lamps()[0].pos);
+   PositionalProjector lampProjector(bbox_scene, shadowmapSize, lampLightPos[0]);
    
    // initialize the trees' positions
    treeT = treeTransform(r.trees(), scale, center);
@@ -642,8 +651,9 @@ int main(int argc, char** argv) {
       draw_scene(stack, false);
       
       if (debugView) {
-         draw_frustum(sunProjector.lightMatrix());
-         draw_bbox(bbox_scene);
+         draw_frustum(lampProjector.lightMatrix(), COLOR_YELLOW);
+         draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
+         draw_bbox(bbox_scene, COLOR_BLACK);
          
          // show the shadow map 
          glViewport(0, 0, 200, 200);
@@ -668,9 +678,9 @@ int main(int argc, char** argv) {
          stack.push();
          stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0.f))); // we bump the cameraman's POV upwards a little bit
          // the cameraman's view matrix is the inverse of its frame, but first we scale it back up so that the projection matrix isn't affected
-         viewMatrix = glm::inverse( glm::scale(stack.m() * r.cameramen()[currentPOV-1].frame, glm::vec3(1./scale)) );
+         viewMatrix = glm::inverse( glm::scale(stack.m() * r.cameramen()[currentPOV-1].frame, glm::vec3(1.f/scale)) );
          draw_cameraman[currentPOV-1] = false;
-         if (currentPOV>1)
+         if (currentPOV > 1)
             draw_cameraman[currentPOV-2] = true;
          stack.pop();
       }
