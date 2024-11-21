@@ -5,15 +5,11 @@ in vec2 vTexCoord;
 
 uniform sampler2D uTexture;
 
-// this produce the Hue for v:0..1 (for debug purposes)
-vec3 hsv2rgb(float  v)
-{
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(vec3(v,v,v) + K.xyz) * 6.0 - K.www);
-    return   mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0),1.0);
+float unpack(vec4 v) {
+   return v.x + v.y / (256.0) + v.z / (256.0*256.0) + v.w / (256.0*256.0*256.0);
 }
 
 void main(void) 
 { 
-	color = texture(uTexture,vTexCoord);
+	color = vec4(vec3(unpack(texture(uTexture,vTexCoord))), 1.0);
 } 
