@@ -60,10 +60,14 @@ class Projector {
       unsigned int getFrameBufferID() {
          return shadowmapFBO.id_fbo;
       }
+
+      box3 getBoundingBox() {
+         return sceneBoundingBox;
+      }
 };
 
 // represents a directional light
-class DirectionalProjector : Projector {
+class DirectionalProjector : public Projector {
    protected:
       glm::vec3 lightDirection;
       
@@ -96,8 +100,8 @@ class DirectionalProjector : Projector {
       }
 };
 
-// represents a positional light placed above the XZ plane
-class PositionalProjector : Projector {
+// represents a positional light placed above the scene
+class PositionalProjector : public Projector {
    protected:
       glm::vec3 lightPosition;
 
@@ -105,7 +109,15 @@ class PositionalProjector : Projector {
          viewMatrix = glm::lookAt(lightPosition, glm::vec3(lightPosition.x,0.0,lightPosition.z), glm::vec3(0.,0.,1.));
          box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
 
-         // TODO
+         float epsilon = 0.001;
+         float nearPlane = 0.01;
+         float X1 = abs(aabb.max.z) + epsilon;
+         float farPlane = abs(aabb.min.z) + epsilon;
+         projMatrix = glm::frustum(nearPlane * (abs(aabb.min.x) / X1),
+                                   nearPlane * (abs(aabb.max.x) / X1),
+                                   nearPlane * (abs(aabb.min.y) / X1),
+                                   nearPlane * (abs(aabb.max.y) / X1),
+                                   nearPlane, farPlane);
       }
 
    public:

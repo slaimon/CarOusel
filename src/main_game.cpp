@@ -393,6 +393,11 @@ void draw_texture(GLint tex_id) {
    glActiveTexture(at);
 }
 
+renderable r_cube;
+void draw_frustum(glm::mat4 T) {
+
+}
+
 
 void draw_scene(matrix_stack stack, bool depthOnly) {
    shader sh;
@@ -479,7 +484,6 @@ int main(int argc, char** argv) {
    r_sphere = shape_maker::sphere(2);
    r_quad = shape_maker::quad();
    
-   renderable r_cube;
    shape s_cube;
    shape_maker::cube(s_cube);
    s_cube.compute_edges();

@@ -53,8 +53,8 @@ uniform int uShadowMapSize;
 
 
 float sunlightColor() {
-   //return max(0.0, dot(uSun, vec3(0.0,1.0,0.0))) * SUNLIGHT_COLOR;
-   return vec4(0.,0.,0.,1.);
+   return max(0.0, dot(uSun, vec3(0.0,1.0,0.0))) * SUNLIGHT_COLOR;
+   //return vec4(0.,0.,0.,1.);
 }
 
 // L and N must be normalized
