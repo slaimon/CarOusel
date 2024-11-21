@@ -394,8 +394,24 @@ void draw_texture(GLint tex_id) {
 }
 
 renderable r_cube;
-void draw_frustum(glm::mat4 T) {
+// draws the frustum represented by the given projection matrix
+void draw_frustum(glm::mat4 projMatrix) {
+   r_cube.bind();
+   glUseProgram(shader_basic.program);
+   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::inverse(projMatrix)[0][0]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+}
 
+// draws a box3
+void draw_bbox(box3 bbox) {
+   glm::mat4 T = glm::translate(glm::mat4(1.f), bbox.center());
+             T = glm::scale(T, glm::abs(bbox.max - bbox.min) / 2.f);
+   glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &T[0][0]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
 }
 
 
@@ -575,6 +591,7 @@ int main(int argc, char** argv) {
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
    glUseProgram(0);
+   PositionalProjector lampProjector(bbox_scene, shadowmapSize, r.lamps()[0].pos);
    
    // initialize the trees' positions
    treeT = treeTransform(r.trees(), scale, center);
@@ -625,27 +642,8 @@ int main(int argc, char** argv) {
       draw_scene(stack, false);
       
       if (debugView) {
-         // draw the light frustum
-         r_cube.bind();
-         stack.push();
-         stack.load(inverse(sunProjector.lightMatrix()));   // draw a cube around the sun's clip space
-         glUseProgram(shader_basic.program);
-         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
-         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-         stack.pop();
-         
-         // draw the world's bounding box
-         stack.push();
-         stack.load_identity();
-         stack.mult(glm::translate(glm::mat4(1.f), bbox_scene.center()));
-         stack.mult(glm::scale(glm::mat4(1.f), glm::abs(bbox_scene.max-bbox_scene.min)/2.f));
-         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
-         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-         stack.pop();
+         draw_frustum(sunProjector.lightMatrix());
+         draw_bbox(bbox_scene);
          
          // show the shadow map 
          glViewport(0, 0, 200, 200);

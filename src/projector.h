@@ -5,8 +5,8 @@
 #include "../common/texture.h"
 #include "../common/frame_buffer_object.h"
 
-inline glm::vec4* getBoxCorners(box3 box) {
-   glm::vec4 corners[8];
+inline std::vector<glm::vec4> getBoxCorners(box3 box) {
+   std::vector<glm::vec4> corners(8);
 
    corners[0] = glm::vec4(box.min, 1.0);
    corners[1] = glm::vec4(box.min.x, box.min.y, box.max.z, 1.0);
@@ -23,7 +23,7 @@ inline glm::vec4* getBoxCorners(box3 box) {
 inline box3 transformBoundingBox(box3 box, glm::mat4 T) {
    box3 aabb(0.0);
 
-   glm::vec4* corners = getBoxCorners(box);
+   std::vector<glm::vec4> corners = getBoxCorners(box);
    for (int i = 0; i < 8; i++)
       aabb.add(glm::vec3(T * corners[i]));
 
@@ -39,6 +39,7 @@ class Projector {
       unsigned int shadowmapSize;
 
       Projector(box3 box, unsigned int shadowmap_size) {
+         viewMatrix = projMatrix = glm::mat4(1.0);
          sceneBoundingBox = box;
          shadowmapSize = shadowmap_size;
          shadowmapFBO.create(shadowmapSize, shadowmapSize);
