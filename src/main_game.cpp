@@ -158,6 +158,7 @@ bool debugView = false;
 bool timeStep = true;
 bool lampState = true;
 bool drawShadows = true;
+bool sunState = true;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -209,6 +210,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
          
          case GLFW_KEY_L:
             lampState = !lampState;
+            break;
+         
+         case GLFW_KEY_K:
+            sunState = !sunState;
             break;
 
          case GLFW_KEY_Q:
@@ -463,7 +468,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
     check_gl_errors(__LINE__, __FILE__);
    //draw_trees(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
-   //draw_lamps(sh, stack);
+   draw_lamps(sh, stack);
    //draw_lightBulbs(sh);
     check_gl_errors(__LINE__, __FILE__);
 }
@@ -639,6 +644,7 @@ int main(int argc, char** argv) {
       glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
       glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
       glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));
+      glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
       glUseProgram(0);
       
       

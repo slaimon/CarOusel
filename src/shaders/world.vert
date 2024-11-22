@@ -7,6 +7,7 @@ layout (location = 4) in vec2 aTexCoord;
 
 // transformed vertex attributes
 out vec3 vPos;
+out vec3 posWS;
 out vec3 vNormal;
 out vec2 vTexCoord;
 
@@ -87,6 +88,7 @@ void main(void) {
    vSunWS = computeLightPosWS(vPosLS);
 
    // vertex computations
+   posWS = (uModel*vec4(aPosition,1.0)).xyz;
    vPos = (uView*uModel*vec4(aPosition,1.0)).xyz;
    vNormal = (uView*uModel*vec4(aNormal, 0.0)).xyz; 
    gl_Position = uProj*uView*uModel*vec4(aPosition, 1.0);
