@@ -603,7 +603,7 @@ int main(int argc, char** argv) {
    glUseProgram(0);
    
 
-   // initialize the lamps' and their lights' positions
+   // initialize the lamps and their lights
    lampT = lampTransform(r.t(), r.lamps(), scale, center);
    lampLightPos = lampLightPositions(lampT);
    glUseProgram(shader_world.program);
@@ -612,7 +612,11 @@ int main(int argc, char** argv) {
    glUniform1f(shader_world["uLampAngleOut"], glm::cos(glm::radians(LAMP_ANGLE_OUT)));
    glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
    glUseProgram(0);
-   SpotlightProjector lampProjector(shadowmapSize, lampLightPos[0], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
+
+   std::vector<SpotlightProjector> spotlights;
+   spotlights.reserve(lampLightPos.size());
+   for(unsigned int i = 0; i < lampLightPos.size(); ++i)
+      spotlights.emplace_back(shadowmapSize, lampLightPos[i], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
    
    // initialize the trees' positions
    treeT = treeTransform(r.trees(), scale, center);
@@ -664,7 +668,8 @@ int main(int argc, char** argv) {
       draw_scene(stack, false);
       
       if (debugView) {
-         draw_frustum(lampProjector.lightMatrix(), COLOR_YELLOW);
+         for (unsigned int i = 0; i < spotlights.size(); ++i)
+            draw_frustum(spotlights[i].lightMatrix(), COLOR_YELLOW);
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
          

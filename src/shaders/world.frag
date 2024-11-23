@@ -77,7 +77,7 @@ float specularIntensity(vec3 L, vec3 N, vec3 V) {
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
    vec3 lightDir = normalize(lightPos - surfacePos);   // the vector pointing from the fragment to the light source
    
-   float cosine = dot(lightDir, -uLampDirection);
+   float cosine = dot(lightDir, -SPOTLIGHT_DIRECTION);
    if (cosine > uLampAngleIn)
       return 1.0;
    else if (cosine > uLampAngleOut) {
