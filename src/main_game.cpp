@@ -60,8 +60,6 @@ void printVec3 (glm::vec3 v) {
 int width = 1440;
 int height = 900;
 
-unsigned int shadowmapSize = 2048;
-
 #define COLOR_RED    glm::vec3(1.f,0.f,0.f)
 #define COLOR_GREEN  glm::vec3(0.f,1.f,0.f)
 #define COLOR_BLUE   glm::vec3(0.f,0.f,1.f)
@@ -72,6 +70,9 @@ unsigned int shadowmapSize = 2048;
 // opening of the street lamps' beams in angles
 #define LAMP_ANGLE_IN   15.0f
 #define LAMP_ANGLE_OUT  60.0f
+
+#define SUN_SHADOWMAP_SIZE   2048u
+#define LAMP_SHADOWMAP_SIZE   256u
 
 // textures and shading
 typedef enum shadingMode {
@@ -593,13 +594,13 @@ int main(int argc, char** argv) {
    bbox_scene.min = glm::vec3(stack.m() * glm::vec4(bbox_scene.min, 1.0));
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
-   DirectionalProjector sunProjector(bbox_scene, shadowmapSize, -r.sunlight_direction());
+   DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, -r.sunlight_direction());
    
    glUseProgram(shader_depth.program);
    glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
    
    glUseProgram(shader_world.program);
-   glUniform1i(shader_world["uShadowMapSize"], shadowmapSize);
+   glUniform1i(shader_world["uSunShadowmapSize"], SUN_SHADOWMAP_SIZE);
    glUseProgram(0);
    
 
@@ -616,7 +617,7 @@ int main(int argc, char** argv) {
    std::vector<SpotlightProjector> spotlights;
    spotlights.reserve(lampLightPos.size());
    for(unsigned int i = 0; i < lampLightPos.size(); ++i)
-      spotlights.emplace_back(shadowmapSize, lampLightPos[i], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
+      spotlights.emplace_back(LAMP_SHADOWMAP_SIZE, lampLightPos[i], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
    
    // initialize the trees' positions
    treeT = treeTransform(r.trees(), scale, center);
@@ -639,7 +640,7 @@ int main(int argc, char** argv) {
       
       // ci prepariamo a disegnare il buffer per la shadowmap
       glBindFramebuffer(GL_FRAMEBUFFER, sunProjector.getFrameBufferID());
-      glViewport(0, 0, shadowmapSize, shadowmapSize);
+      glViewport(0, 0, SUN_SHADOWMAP_SIZE, SUN_SHADOWMAP_SIZE);
       glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
       
       // primo passaggio:
@@ -651,7 +652,7 @@ int main(int argc, char** argv) {
       glUseProgram(shader_world.program);
       glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
       glBindTexture(GL_TEXTURE_2D, sunProjector.getTextureID());
-      glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
+      glUniform1i(shader_world["uSunShadowmap"], TEXTURE_SHADOWMAP);
       glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
       glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
       glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));

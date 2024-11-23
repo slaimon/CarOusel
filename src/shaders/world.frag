@@ -48,8 +48,8 @@ uniform float uLampAngleOut;
 uniform vec3 uLampDirection;
 
 uniform float uDrawShadows;
-uniform int uShadowMapSize;
-uniform sampler2D uShadowMap;
+uniform int uSunShadowmapSize;
+uniform sampler2D uSunShadowmap;
 
 uniform int uMode;
 uniform vec3 uColor;
@@ -100,7 +100,7 @@ float isLit(vec3 L, vec3 N) {
 
    float bias = clamp(BIAS_A*tan(acos(dot(N,L))), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
-   float depth = texture(uShadowMap,pLS.xy).x;
+   float depth = texture(uSunShadowmap,pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
@@ -118,7 +118,7 @@ float isLitPCF(vec3 L, vec3 N) {
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  texture(uShadowMap, pLS.xy + vec2(-2.0+x,-2.0+y)/uShadowMapSize).x;
+         storedDepth =  texture(uSunShadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/uSunShadowmapSize).x;
          if(storedDepth + BIAS_PCF < pLS.z )    
             lit  -= 1.0/25.0;
       }
