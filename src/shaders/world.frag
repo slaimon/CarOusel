@@ -17,8 +17,7 @@ in vec3 posWS;
 #define ATTENUATION_C3  20.0
 
 // spotlight parameters
-#define LAMP_ANGLE_IN   cos(radians(30.0))
-#define LAMP_ANGLE_OUT  cos(radians(45.0))
+#define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
 
 // positions of the lights in viewspace
 #define NLAMPS 19
@@ -39,19 +38,23 @@ in vec3 vSunWS;
 
 // UNIFORMS:
 
-// positions of the lights in worldspace
-uniform vec3 uLamps[NLAMPS];
 uniform vec3 uSun;
 uniform float uSunState;
-uniform float uLampState;
-uniform float uDrawShadows;
 
-uniform vec3 uColor;
+uniform vec3 uLamps[NLAMPS];
+uniform float uLampState;
+uniform float uLampAngleIn;
+uniform float uLampAngleOut;
+uniform vec3 uLampDirection;
+
+uniform float uDrawShadows;
+uniform int uShadowMapSize;
+uniform sampler2D uShadowMap;
+
 uniform int uMode;
+uniform vec3 uColor;
 uniform sampler2D uColorImage;
 uniform sampler2D uNormalmapImage;
-uniform sampler2D uShadowMap;
-uniform int uShadowMapSize;
 
 
 vec4 sunlightColor() {
@@ -65,30 +68,30 @@ float lightIntensity(vec3 L, vec3 N) {
 
 float specularIntensity(vec3 L, vec3 N, vec3 V) {
    float LN = lightIntensity(L,N);
-   //vec3 R = -L+2*dot(L,N)*N;
-   vec3 H = normalize(L+V);
+   //vec3 R = -L+2*dot(L,N)*N;      // Phong
+   vec3 H = normalize(L+V);         // Blinn-Phong
    
    return ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),SHININESS));
 }
 
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
    vec3 lightDir = normalize(lightPos - surfacePos);   // the vector pointing from the fragment to the light source
-   vec3 spotDir = vec3(0.0,1.0,0.0);   // direction of the spotlight (down)
    
-   float cosine = dot(lightDir, spotDir);
-   if (cosine > LAMP_ANGLE_IN)
+   float cosine = dot(lightDir, -uLampDirection);
+   if (cosine > uLampAngleIn)
       return 1.0;
-   else if (cosine > LAMP_ANGLE_OUT)
-      return (cosine-LAMP_ANGLE_OUT)/(LAMP_ANGLE_IN-LAMP_ANGLE_OUT);
+   else if (cosine > uLampAngleOut) {
+      float w = (cosine - uLampAngleOut)/(uLampAngleIn - uLampAngleOut);
+      return w;
+   }
    else
       return 0.0;
 }
 
 float attenuation(vec3 lightPos, vec3 surfacePos) {
    float d = length(lightPos-surfacePos);
-   if (d>0.05)
-      return 0.0;
-   return 10.0*min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
+   
+   return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
 }
 
 float isLit(vec3 L, vec3 N) {
@@ -180,16 +183,16 @@ void main(void) {
    if (uLampState == 1.0) {
       for (int i=0; i<NLAMPS; i++) {
          lampToSurfaceVS = normalize(vLampVS[i]-vPos);
-         lampsContrib += spotlightIntensity(uLamps[i], posWS) *
+         lampsContrib += spotlightIntensity(uLamps[i], posWS) * attenuation(uLamps[i], posWS) *
                          (lightIntensity(lampToSurfaceVS, surfaceNormal) +
 						  0.5 * specularIntensity(lampToSurfaceVS, surfaceNormal, normalize(-vPos)));
       }
-      lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0) / 2.0;
+      lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0);
    }
    
    if (uSunState == 1.0) {
       sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(sunToSurfaceVS, surfaceNormal);
    }
    
-   color = diffuseColor * (vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib) / 2.0 );
+   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
 } 

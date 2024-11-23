@@ -10,13 +10,11 @@
 class Projector {
    protected:
       glm::mat4 viewMatrix, projMatrix;
-      box3 sceneBoundingBox;
       frame_buffer_object shadowmapFBO;
       unsigned int shadowmapSize;
 
-      Projector(box3 box, unsigned int shadowmap_size) {
+      Projector(unsigned int shadowmap_size) {
          viewMatrix = projMatrix = glm::mat4(1.0);
-         sceneBoundingBox = box;
          shadowmapSize = shadowmap_size;
          shadowmapFBO.create(shadowmapSize, shadowmapSize);
       }
@@ -37,16 +35,13 @@ class Projector {
       unsigned int getFrameBufferID() {
          return shadowmapFBO.id_fbo;
       }
-
-      box3 getBoundingBox() {
-         return sceneBoundingBox;
-      }
 };
 
 // represents a directional light
 class DirectionalProjector : public Projector {
    protected:
       glm::vec3 lightDirection;
+      box3 sceneBoundingBox;
       
       void update() {
          viewMatrix = lookAt(-lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
@@ -67,7 +62,8 @@ class DirectionalProjector : public Projector {
 
    public:
       DirectionalProjector(box3 box, unsigned int shadowmap_size, glm::vec3 light_direction = glm::vec3(0.f,-1.f,0.f)) 
-         : Projector(box, shadowmap_size) {
+         : Projector(shadowmap_size) {
+         sceneBoundingBox = box;
          setDirection(light_direction);
       }
 
@@ -75,34 +71,39 @@ class DirectionalProjector : public Projector {
          lightDirection = glm::normalize(light_direction);
          update();
       }
+
+      box3 getBoundingBox() {
+         return sceneBoundingBox;
+      }
 };
 
-// represents a positional light placed above the scene
-class PositionalProjector : public Projector {
+// represents a spotlight capable of casting shadows
+class SpotlightProjector : public Projector {
    protected:
       glm::vec3 lightPosition;
+      glm::vec3 lightDirection;
+      float lightAngle_in;
+      float lightAngle_out;
 
       void update() {
-         viewMatrix = glm::lookAt(lightPosition, glm::vec3(lightPosition.x,0.0,lightPosition.z), glm::vec3(1.,0.,0.));
-         box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
+         viewMatrix[0] = glm::vec4(1., 0., 0., 0.);
+         viewMatrix[1] = glm::vec4(glm::cross(-lightDirection, glm::vec3(1., 0., 0.)), 0.);
+         viewMatrix[2] = glm::vec4(-lightDirection, 0.0);
+         viewMatrix[3] = glm::vec4(lightPosition, 1.0);
+         viewMatrix = glm::inverse(viewMatrix);
 
          float nearPlane = 0.001;
-         float farPlane = abs(aabb.min.z);
-         projMatrix = glm::frustum(nearPlane * aabb.min.x / farPlane,
-                                   nearPlane * aabb.max.x / farPlane,
-                                   nearPlane * aabb.min.y / farPlane,
-                                   nearPlane * aabb.max.y / farPlane,
-                                   nearPlane, farPlane);
+         float farPlane = 0.07;
+         projMatrix = glm::perspective(2.0f*lightAngle_out, 1.0f, nearPlane, farPlane);
       }
 
    public:
-      PositionalProjector(box3 box, unsigned int shadowmap_size, glm::vec3 light_position)
-         : Projector(box, shadowmap_size) {
-         setPosition(light_position);
-      }
-
-      void setPosition(glm::vec3 light_position) {
+      SpotlightProjector(unsigned int shadowmap_size, glm::vec3 light_position, float angle_in, float angle_out, glm::vec3 direction)
+         : Projector(shadowmap_size) {
          lightPosition = light_position;
+         lightDirection = direction;
+         lightAngle_in = glm::cos(glm::radians(angle_in));
+         lightAngle_out = glm::cos(glm::radians(angle_out));
          update();
       }
 };

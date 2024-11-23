@@ -69,6 +69,10 @@ unsigned int shadowmapSize = 2048;
 #define COLOR_WHITE  glm::vec3(1.f,1.f,1.f)
 #define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
 
+// opening of the street lamps' beams in angles
+#define LAMP_ANGLE_IN   15.0f
+#define LAMP_ANGLE_OUT  60.0f
+
 // textures and shading
 typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
@@ -604,8 +608,11 @@ int main(int argc, char** argv) {
    lampLightPos = lampLightPositions(lampT);
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
+   glUniform1f(shader_world["uLampAngleIn"], glm::cos(glm::radians(LAMP_ANGLE_IN)));
+   glUniform1f(shader_world["uLampAngleOut"], glm::cos(glm::radians(LAMP_ANGLE_OUT)));
+   glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
    glUseProgram(0);
-   PositionalProjector lampProjector(bbox_scene, shadowmapSize, lampLightPos[0]);
+   SpotlightProjector lampProjector(shadowmapSize, lampLightPos[0], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
    
    // initialize the trees' positions
    treeT = treeTransform(r.trees(), scale, center);
