@@ -38,7 +38,7 @@ in vec3 vSunWS;
 
 // UNIFORMS:
 
-uniform vec3 uSun;
+uniform vec3 uSunDirection;
 uniform float uSunState;
 
 uniform vec3 uLamps[NLAMPS];
@@ -58,7 +58,7 @@ uniform sampler2D uNormalmapImage;
 
 
 vec4 sunlightColor() {
-   return max(0.0, dot(uSun, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
+   return max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
 }
 
 // L and N must be normalized
@@ -154,8 +154,7 @@ void main(void) {
    }
    // normal map shading
    if (uMode == 1) {
-      surfaceNormal = texture2D(uNormalmapImage,vTexCoord.xy).xyz ;
-      surfaceNormal = normalize(surfaceNormal*2.0-1.0);
+      surfaceNormal = normalize(texture2D(uNormalmapImage,vTexCoord.xy).xyz*2.0 - 1.0);
       sunIntensityDiff = lightIntensity(normalize(vSunTS), surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }

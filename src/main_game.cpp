@@ -111,6 +111,15 @@ void load_models() {
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
 
+inline void updateLightDirection(shader s, const char* uniform_name, DirectionalProjector &projector) {
+   glm::vec3 dir = projector.getDirection();
+   glUniform3f(s[uniform_name], dir.x, dir.y, dir.z);
+}
+
+inline void updateLightMatrix(shader s, const char* uniform_name, Projector& projector) {
+   glUniformMatrix4fv(s[uniform_name], 1, GL_FALSE, &projector.lightMatrix()[0][0]);
+}
+
 // the passed shader MUST be already active!
 void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox, shader s) {
    float scale = 1.f / bbox.diagonal();
@@ -245,7 +254,7 @@ void draw_frame() {
    glUseProgram(0);
 }
 
-void draw_sunDir(glm::vec3 sundir) {
+void draw_sunDirection(glm::vec3 sundir) {
    glUseProgram(shader_basic.program);
    glUniform3f(shader_basic["uColor"], 0.f, 0.f, 0.f);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
@@ -441,7 +450,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
    else {
       //draw_frame();
-      draw_sunDir(r.sunlight_direction());
+      draw_sunDirection(r.sunlight_direction());
       sh = shader_world;
    }
    
@@ -514,7 +523,6 @@ int main(int argc, char** argv) {
 
 
    // begin creating the world
-   
    fram = shape_maker::frame();
    r_sphere = shape_maker::sphere(2);
    r_quad = shape_maker::quad();
@@ -583,24 +591,21 @@ int main(int argc, char** argv) {
    stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(scale)));
    stack.mult(glm::translate(glm::mat4(1.f), -center));
 
-   // initialize sunlight direction
+   // initialize scene
    r.start(11,0,0,600);
    r.update();
-   glUseProgram(shader_world.program);
-   glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
    
-   // we transform the scene's bounding box in world coordinates to pass it to the Sun Projector
+   // transform the scene's bounding box in world coordinates to pass it to the Sun Projector
    box3 bbox_scene = r.bbox();
    bbox_scene.min = glm::vec3(stack.m() * glm::vec4(bbox_scene.min, 1.0));
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
-   DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, -r.sunlight_direction());
-   
-   glUseProgram(shader_depth.program);
-   glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
+   DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, r.sunlight_direction());
    
    glUseProgram(shader_world.program);
+   glUniform1i(shader_world["uSunShadowmap"], TEXTURE_SHADOWMAP);
    glUniform1i(shader_world["uSunShadowmapSize"], SUN_SHADOWMAP_SIZE);
+   updateLightDirection(shader_world, "uSunDirection", sunProjector);
    glUseProgram(0);
    
 
@@ -619,7 +624,7 @@ int main(int argc, char** argv) {
    for(unsigned int i = 0; i < lampLightPos.size(); ++i)
       spotlights.emplace_back(LAMP_SHADOWMAP_SIZE, lampLightPos[i], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
    
-   // initialize the trees' positions
+   // initialize the trees
    treeT = treeTransform(r.trees(), scale, center);
    
 
@@ -632,42 +637,36 @@ int main(int argc, char** argv) {
       if (timeStep)
          r.update();
       
-      // ruota il sole per farlo allineare con r.sunlight_direction()
-      sunProjector.setDirection(-r.sunlight_direction());
+      // update the sun's position
+      sunProjector.setDirection(r.sunlight_direction());
       glUseProgram(shader_depth.program);
       glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
 
       
-      // ci prepariamo a disegnare il buffer per la shadowmap
+      // draw the sun's shadowmap
+      glUseProgram(shader_depth.program);
+      updateLightMatrix(shader_depth, "uLightMatrix", sunProjector);
       glBindFramebuffer(GL_FRAMEBUFFER, sunProjector.getFrameBufferID());
       glViewport(0, 0, SUN_SHADOWMAP_SIZE, SUN_SHADOWMAP_SIZE);
       glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-      
-      // primo passaggio:
-      // calcoliamo solo il depth buffer
       draw_scene(stack, true);
       
-      
+
       // bind the shadow map to the shader and update the sun's uniforms
       glUseProgram(shader_world.program);
       glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
       glBindTexture(GL_TEXTURE_2D, sunProjector.getTextureID());
-      glUniform1i(shader_world["uSunShadowmap"], TEXTURE_SHADOWMAP);
-      glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
-      glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
-      glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));
+      updateLightDirection(shader_world, "uSunDirection", sunProjector);
+      updateLightMatrix(shader_world, "uSunMatrix", sunProjector);
+      glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
-      glUseProgram(0);
-      
-      
-      // ci prepariamo a disegnare il buffer che andrà sullo schermo
+
+      // draw the screen buffer
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
       glViewport(0, 0, width, height);
-      
-      // secondo passaggio:
-      // disegnamo tutta la scena
       draw_scene(stack, false);
       
+
       if (debugView) {
          for (unsigned int i = 0; i < spotlights.size(); ++i)
             draw_frustum(spotlights[i].lightMatrix(), COLOR_YELLOW);
@@ -710,13 +709,12 @@ int main(int argc, char** argv) {
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
       
-      /* Swap front and back buffers */
       glfwSwapBuffers(window);
-
-      /* Poll for and process events */
       glfwPollEvents();
    }
+
    glUseProgram(0);
    glfwTerminate();
+
    return 0;
 }

@@ -44,7 +44,7 @@ class DirectionalProjector : public Projector {
       box3 sceneBoundingBox;
       
       void update() {
-         viewMatrix = lookAt(-lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
+         viewMatrix = lookAt(lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
          
          // remove the translation component
          viewMatrix[3][0] = 0.f;
@@ -70,6 +70,10 @@ class DirectionalProjector : public Projector {
       void setDirection(glm::vec3 light_direction) {
          lightDirection = glm::normalize(light_direction);
          update();
+      }
+
+      glm::vec3 getDirection() {
+         return lightDirection;
       }
 
       box3 getBoundingBox() {

@@ -28,7 +28,7 @@ out vec3 vSunWS;
 
 // positions of the lights in worldspace
 uniform vec3 uLamps[NLAMPS];
-uniform vec3 uSun;
+uniform vec3 uSunDirection;
 uniform float uLampState;
 
 uniform mat4 uSunMatrix;
@@ -61,7 +61,7 @@ void main(void) {
    vec3 ViewVS;
    mat3 TF;
    
-   vSunVS = (uView*vec4(uSun,0.0)).xyz;
+   vSunVS = (uView*vec4(uSunDirection,0.0)).xyz;
    
    if (uLampState == 1.0) {
       for (int i = 0; i < NLAMPS; i++) {
@@ -79,7 +79,7 @@ void main(void) {
       TF[2] = normalize(aNormal);
       TF    = transpose(TF);
 
-      vSunTS = TF * (inverse(uModel)*vec4(uSun,0.0)).xyz;
+      vSunTS = TF * (inverse(uModel)*vec4(uSunDirection,0.0)).xyz;
       vTexCoord = aTexCoord;
    }
    
