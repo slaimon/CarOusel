@@ -61,7 +61,7 @@ void main(void) {
    vec3 ViewVS;
    mat3 TF;
    
-   vSunVS = (uView*vec4(uSunDirection,0.0)).xyz;
+   vSunVS = normalize((uView*vec4(uSunDirection,0.0)).xyz);
    
    if (uLampState == 1.0) {
       for (int i = 0; i < NLAMPS; i++) {
@@ -88,8 +88,10 @@ void main(void) {
    vSunWS = computeLightPosWS(vPosLS);
 
    // vertex computations
-   posWS = (uModel*vec4(aPosition,1.0)).xyz;
-   vPos = (uView*uModel*vec4(aPosition,1.0)).xyz;
-   vNormal = (uView*uModel*vec4(aNormal, 0.0)).xyz; 
-   gl_Position = uProj*uView*uModel*vec4(aPosition, 1.0);
+   vNormal = (uView*uModel*vec4(aNormal, 0.0)).xyz;
+   vec4 pws = (uModel*vec4(aPosition,1.0));
+   posWS = pws.xyz;
+   pws = uView*pws;
+   vPos = pws.xyz; 
+   gl_Position = uProj*pws;
 }

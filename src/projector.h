@@ -90,13 +90,13 @@ class SpotlightProjector : public Projector {
       float lightAngle_out;
 
       void update() {
-         viewMatrix[0] = glm::vec4(1., 0., 0., 0.);
-         viewMatrix[1] = glm::vec4(glm::cross(-lightDirection, glm::vec3(1., 0., 0.)), 0.);
-         viewMatrix[2] = glm::vec4(-lightDirection, 0.0);
-         viewMatrix[3] = glm::vec4(lightPosition, 1.0);
+         viewMatrix[0] = glm::vec4(1.f, 0.f, 0.f, 0.f);
+         viewMatrix[1] = glm::vec4(glm::cross(-lightDirection, glm::vec3(1.f, 0.f, 0.f)), 0.f);
+         viewMatrix[2] = glm::vec4(-lightDirection, 0.f);
+         viewMatrix[3] = glm::vec4(lightPosition, 1.f);
          viewMatrix = glm::inverse(viewMatrix);
 
-         float nearPlane = 0.001;
+         float nearPlane = 0.02;
          float farPlane = 0.07;
          projMatrix = glm::perspective(2.0f*lightAngle_out, 1.0f, nearPlane, farPlane);
       }

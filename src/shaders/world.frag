@@ -10,6 +10,7 @@ in vec3 posWS;
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
 #define SHININESS          1.5
+#define SPECULAR_WEIGHT    0.0
 
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  0.01
@@ -50,6 +51,8 @@ uniform vec3 uLampDirection;
 uniform float uDrawShadows;
 uniform int uSunShadowmapSize;
 uniform sampler2D uSunShadowmap;
+uniform sampler2D uLampShadowmaps[NLAMPS];
+uniform int uLampShadowmapSize;
 
 uniform int uMode;
 uniform vec3 uColor;
@@ -58,7 +61,7 @@ uniform sampler2D uNormalmapImage;
 
 
 vec4 sunlightColor() {
-   return max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
+   return vec4(SUNLIGHT_COLOR, 1.0);//max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
 }
 
 // L and N must be normalized
@@ -71,7 +74,7 @@ float specularIntensity(vec3 L, vec3 N, vec3 V) {
    //vec3 R = -L+2*dot(L,N)*N;      // Phong
    vec3 H = normalize(L+V);         // Blinn-Phong
    
-   return ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),SHININESS));
+   return SPECULAR_WEIGHT * ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),SHININESS));
 }
 
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
@@ -109,7 +112,7 @@ float isLitPCF(vec3 L, vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
    // the pixel is in shadow if the normal points away from the light source
-   if (acos(dot(normalize(L), normalize(N))) > radians(90.0))
+   if (dot(normalize(L), normalize(N)) < 0.0)
       return 0.0;
 
    float storedDepth;
@@ -127,12 +130,34 @@ float isLitPCF(vec3 L, vec3 N) {
    return lit;
 }
 
-// this produce the Hue for v:0..1 (for debug purposes)
-vec3 hsv2rgb(float  v)
-{
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(vec3(v,v,v) + K.xyz) * 6.0 - K.www);
-    return   mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0),1.0);
+float isLitByLamp(int i, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+   
+   float bias = clamp(BIAS_A*tan(acos(dot(N,vLampVS[i]))), BIAS_MIN_E, BIAS_MAX_E);
+   vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
+   float depth = texture(uLampShadowmaps[i],pLS.xy).x;
+   
+   return ((depth + bias < pLS.z) ? (0.0) : (1.0));
+}
+
+float isLitByLampPCF(int i, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+   
+   float storedDepth;
+   float lit = 1.0;
+   vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
+   
+   for(float x = 0.0; x < 5.0; x+=1.0) {
+      for(float y = 0.0; y < 5.0; y+=1.0) {
+         storedDepth =  texture(uLampShadowmaps[i], pLS.xy + vec2(-2.0+x,-2.0+y)/uLampShadowmapSize).x;
+         if(storedDepth + BIAS_PCF < pLS.z )    
+            lit  -= 1.0/25.0;
+      }
+   }
+   
+   return lit;
 }
 
 void main(void) { 
@@ -143,13 +168,12 @@ void main(void) {
    vec4 lampsContrib = vec4(0.0);
    vec4 sunContrib = vec4(0.0);
    
-   vec3 sunToSurfaceVS = normalize(vSunVS-vPos);
    vec3 lampToSurfaceVS;
    
    // textured flat shading
    if (uMode == 0) {
       surfaceNormal = normalize(cross(dFdx(vPos),dFdy(vPos)));
-      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // normal map shading
@@ -161,21 +185,21 @@ void main(void) {
    // monochrome flat shading
    if (uMode == 2) {
       surfaceNormal = normalize(cross(dFdx(vPos),dFdy(vPos)));
-      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
+      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       diffuseColor = vec4(uColor, 1.0);
    }
    // textured phong shading
    if (uMode == 3) {
       surfaceNormal = normalize(vNormal);
-      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
-      sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
+      sunIntensitySpec = specularIntensity(vSunVS, surfaceNormal, normalize(-vPos));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
    if (uMode == 4) {
       surfaceNormal = normalize(vNormal);
-      sunIntensityDiff = lightIntensity(sunToSurfaceVS, surfaceNormal);
-      sunIntensitySpec = specularIntensity(sunToSurfaceVS, surfaceNormal, normalize(-vPos));
+      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
+      sunIntensitySpec = specularIntensity(vSunVS, surfaceNormal, normalize(-vPos));
       diffuseColor = vec4(uColor,1.0);
    }
 
@@ -183,14 +207,14 @@ void main(void) {
       for (int i=0; i<NLAMPS; i++) {
          lampToSurfaceVS = normalize(vLampVS[i]-vPos);
          lampsContrib += spotlightIntensity(uLamps[i], posWS) * attenuation(uLamps[i], posWS) *
-                         (lightIntensity(lampToSurfaceVS, surfaceNormal) +
-						  0.5 * specularIntensity(lampToSurfaceVS, surfaceNormal, normalize(-vPos)));
+                         isLitByLamp(i, surfaceNormal) * (lightIntensity(lampToSurfaceVS, surfaceNormal) +
+						  specularIntensity(lampToSurfaceVS, surfaceNormal, normalize(-vPos)));
       }
       lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0);
    }
    
    if (uSunState == 1.0) {
-      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(sunToSurfaceVS, surfaceNormal);
+      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(vSunVS, surfaceNormal);
    }
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
