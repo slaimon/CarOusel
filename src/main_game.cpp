@@ -108,6 +108,7 @@ void load_models() {
    gltf_loader gltfLoader;
    gltfLoader.load_to_renderable(models_path + "car1.glb", model_car, bbox_car);
    gltfLoader.load_to_renderable(models_path + "camera4.glb", model_camera, bbox_camera);
+   std::cout << "camera model lenght: " << model_camera.size() << std::endl;
    gltfLoader.load_to_renderable(models_path + "lamp2.glb", model_lamp, bbox_lamp);
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
@@ -162,7 +163,7 @@ unsigned int POVselected = 0; // will keep track of how many times the user has 
 bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
-bool lampState = true;
+bool lampState = false;
 bool drawShadows = true;
 bool sunState = true;
 float playerMinHeight = 0.01;
@@ -469,9 +470,9 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    glFrontFace(GL_CCW);
    draw_cars(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_cameramen(sh, stack);
+   draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_trees(sh, stack);
+   draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
    draw_lamps(sh, stack);
    //draw_lightBulbs(sh);
