@@ -59,6 +59,9 @@ uniform vec3 uColor;
 uniform sampler2D uColorImage;
 uniform sampler2D uNormalmapImage;
 
+float tanacos(float x) {
+   return sqrt(1-x*x)/x;
+}
 
 vec4 sunlightColor() {
    return vec4(SUNLIGHT_COLOR, 1.0);//max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
@@ -101,7 +104,7 @@ float isLit(vec3 L, vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
 
-   float bias = clamp(BIAS_A*tan(acos(dot(N,L))), BIAS_MIN_E, BIAS_MAX_E);
+   float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
    float depth = texture(uSunShadowmap,pLS.xy).x;
    
@@ -133,9 +136,12 @@ float isLitPCF(vec3 L, vec3 N) {
 float isLitByLamp(int i, vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
+   vec3 L = normalize(uLamps[i] - posWS);
    
-   float bias = clamp(BIAS_A*tan(acos(dot(N,vLampVS[i]))), BIAS_MIN_E, BIAS_MAX_E);
+   float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
+   if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
+      return 0.0;
    float depth = texture(uLampShadowmaps[i],pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
@@ -202,13 +208,18 @@ void main(void) {
       sunIntensitySpec = specularIntensity(vSunVS, surfaceNormal, normalize(-vPos));
       diffuseColor = vec4(uColor,1.0);
    }
-
+   
+   float spotint, lit = 1.0;
    if (uLampState == 1.0) {
       for (int i=0; i<NLAMPS; i++) {
+	     // if the fragment is outside this lamp's light cone, skip all calculations
+	     spotint = spotlightIntensity(uLamps[i], posWS);
+		 if (spotint == 0.0)
+		    continue;
+
          lampToSurfaceVS = normalize(vLampVS[i]-vPos);
-         lampsContrib += spotlightIntensity(uLamps[i], posWS) * attenuation(uLamps[i], posWS) *
-                         isLitByLamp(i, surfaceNormal) * (lightIntensity(lampToSurfaceVS, surfaceNormal) +
-						  specularIntensity(lampToSurfaceVS, surfaceNormal, normalize(-vPos)));
+         lampsContrib += spotint * attenuation(uLamps[i], posWS) * isLitByLamp(i, surfaceNormal) *
+                         lightIntensity(lampToSurfaceVS, surfaceNormal);
       }
       lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0);
    }

@@ -71,7 +71,7 @@ int height = 900;
 #define LAMP_ANGLE_IN   15.0f
 #define LAMP_ANGLE_OUT  60.0f
 
-#define SUN_SHADOWMAP_SIZE   1024u
+#define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE   64u
 
 // textures and shading
@@ -110,15 +110,6 @@ void load_models() {
    gltfLoader.load_to_renderable(models_path + "camera4.glb", model_camera, bbox_camera);
    gltfLoader.load_to_renderable(models_path + "lamp2.glb", model_lamp, bbox_lamp);
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
-}
-
-inline void updateLightDirection(shader s, const char* uniform_name, DirectionalProjector &projector) {
-   glm::vec3 dir = projector.getDirection();
-   glUniform3f(s[uniform_name], dir.x, dir.y, dir.z);
-}
-
-inline void updateLightMatrix(shader s, const char* uniform_name, Projector &projector) {
-   glUniformMatrix4fv(s[uniform_name], 1, GL_FALSE, &projector.lightMatrix()[0][0]);
 }
 
 // the passed shader MUST be already active!
@@ -257,7 +248,7 @@ void draw_frame() {
 
 void draw_sunDirection(glm::vec3 sundir) {
    glUseProgram(shader_basic.program);
-   glUniform3f(shader_basic["uColor"], 0.f, 0.f, 0.f);
+   glUniform3f(shader_basic["uColor"], 1.f, 1.f, 1.f);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
    glBegin(GL_LINES);
    glVertex3f(0, 0, 0);
@@ -450,7 +441,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
    else {
       //draw_frame();
-      draw_sunDirection(r.sunlight_direction());
+      //draw_sunDirection(r.sunlight_direction());
       sh = shader_world;
    }
    
@@ -602,10 +593,12 @@ int main(int argc, char** argv) {
    bbox_scene.max.y = 0.1f;
    DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, r.sunlight_direction());
    
+   // initialize the sun's uniforms
    glUseProgram(shader_world.program);
+   sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
+   sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
    glUniform1i(shader_world["uSunShadowmap"], TEXTURE_SHADOWMAP_SUN);
    glUniform1i(shader_world["uSunShadowmapSize"], SUN_SHADOWMAP_SIZE);
-   updateLightDirection(shader_world, "uSunDirection", sunProjector);
    glUseProgram(0);
    
 
@@ -627,8 +620,10 @@ int main(int argc, char** argv) {
 
       // assign them texture slots
       std::vector<int> lampShadowmapIndex(lampLightPos.size());
-      for (unsigned int i = 0; i < lampShadowmapIndex.size(); ++i)
+      for (unsigned int i = 0; i < lampShadowmapIndex.size(); ++i) {
          lampShadowmapIndex[i] = TEXTURE_SHADOWMAP_LAMPS + i;
+         spotlights[i].bindTexture(lampShadowmapIndex[i]);
+      }
    
       glUseProgram(shader_world.program);
       glUniform1iv(shader_world["uLampShadowmaps"], lampShadowmapIndex.size(), &lampShadowmapIndex[0]);
@@ -648,46 +643,37 @@ int main(int argc, char** argv) {
       if (timeStep)
          r.update();
       
-      // update the sun's position
+      // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
-      glUseProgram(shader_depth.program);
-      glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
+      
+         glUseProgram(shader_depth.program);
+         sunProjector.updateLightMatrixUniform(shader_depth, "uLightMatrix");
+         sunProjector.bindFramebuffer();
 
+         glUseProgram(shader_world.program);
+         sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
+         sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
+         glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
+         glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       
       // draw the sun's shadowmap
-      glUseProgram(shader_depth.program);
-      updateLightMatrix(shader_depth, "uLightMatrix", sunProjector);
-      glBindFramebuffer(GL_FRAMEBUFFER, sunProjector.getFrameBufferID());
-      glViewport(0, 0, SUN_SHADOWMAP_SIZE, SUN_SHADOWMAP_SIZE);
-      glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-      draw_scene(stack, true);
+      if (sunState) {
+         sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
+         draw_scene(stack, true);
+      }
+
 
       // draw the lamps' shadowmaps
       if (lampState) {
          for (unsigned int i = 0; i < spotlights.size(); ++i) {
             glUseProgram(shader_depth.program);
-            updateLightMatrix(shader_depth, "uLightMatrix", spotlights[i]);
-            glBindFramebuffer(GL_FRAMEBUFFER, spotlights[i].getFrameBufferID());
-            glViewport(0, 0, LAMP_SHADOWMAP_SIZE, LAMP_SHADOWMAP_SIZE);
-            glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
+            spotlights[i].updateLightMatrixUniform(shader_depth, "uLightMatrix");
+            spotlights[i].bindFramebuffer();
+            spotlights[i].bindTexture(lampShadowmapIndex[i]);
             draw_scene(stack, true);
-
-            glUseProgram(shader_world.program);
-            glActiveTexture(GL_TEXTURE0 + lampShadowmapIndex[i]);
-            glBindTexture(GL_TEXTURE_2D, spotlights[i].getTextureID());
          }
+         glUseProgram(0);
       }
-      
-
-      // bind the shadow map to the shader and update the sun's uniforms
-      glUseProgram(shader_world.program);
-      glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP_SUN);
-      glBindTexture(GL_TEXTURE_2D, sunProjector.getTextureID());
-      updateLightDirection(shader_world, "uSunDirection", sunProjector);
-      updateLightMatrix(shader_world, "uSunMatrix", sunProjector);
-      glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
-      glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
 
       // draw the screen buffer
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -698,13 +684,15 @@ int main(int argc, char** argv) {
       if (debugView) {
          for (unsigned int i = 0; i < spotlights.size(); ++i)
             draw_frustum(spotlights[i].lightMatrix(), COLOR_YELLOW);
+
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
+         draw_sunDirection(r.sunlight_direction());
          
          // show the shadow map 
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(spotlights[0].getTextureID(), lampShadowmapIndex[0]);
+         draw_texture(spotlights[10].getTextureID(), lampShadowmapIndex[10]);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }

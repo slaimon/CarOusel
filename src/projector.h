@@ -35,6 +35,22 @@ class Projector {
       unsigned int getFrameBufferID() {
          return shadowmapFBO.id_fbo;
       }
+
+      void bindFramebuffer() {
+         glBindFramebuffer(GL_FRAMEBUFFER, shadowmapFBO.id_fbo);
+         glViewport(0, 0, shadowmapSize, shadowmapSize);
+         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+      }
+
+      void bindTexture(int texture_slot) {
+         glActiveTexture(GL_TEXTURE0 + texture_slot);
+         glBindTexture(GL_TEXTURE_2D, shadowmapFBO.id_tex);
+      }
+
+      // s.program must be in use
+      inline void updateLightMatrixUniform(shader s, const char* uniform_name) {
+         glUniformMatrix4fv(s[uniform_name], 1, GL_FALSE, &(projMatrix * viewMatrix)[0][0]);
+      }
 };
 
 // represents a directional light
@@ -79,6 +95,10 @@ class DirectionalProjector : public Projector {
       box3 getBoundingBox() {
          return sceneBoundingBox;
       }
+
+      inline void updateLightDirectionUniform(shader s, const char* uniform_name) {
+         glUniform3f(s[uniform_name], lightDirection.x, lightDirection.y, lightDirection.z);
+      }
 };
 
 // represents a spotlight capable of casting shadows
@@ -96,7 +116,7 @@ class SpotlightProjector : public Projector {
          viewMatrix[3] = glm::vec4(lightPosition, 1.f);
          viewMatrix = glm::inverse(viewMatrix);
 
-         float nearPlane = 0.02;
+         float nearPlane = 0.03;
          float farPlane = 0.07;
          projMatrix = glm::perspective(2.0f*lightAngle_out, 1.0f, nearPlane, farPlane);
       }
