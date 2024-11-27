@@ -225,8 +225,8 @@ void main(void) {
    }
    
    if (uSunState == 1.0) {
-      sunContrib = sunlightColor() * clamp(sunIntensityDiff + sunIntensitySpec, 0.0, 1.0) * isLitPCF(vSunVS, surfaceNormal);
+      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(vSunVS, surfaceNormal);
    }
    
-   color = diffuseColor * (vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib));
+   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
 } 
