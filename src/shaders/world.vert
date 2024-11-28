@@ -75,17 +75,6 @@ void main(void) {
    
    if (uMode == 0)   // textured flat shading
       vTexCoord = aTexCoord;
-   if (uMode == 1) { // normal map
-      tangent = normalize(aTangent);
-      bitangent = normalize(cross(aNormal,tangent));
-      TF[0] = tangent;
-      TF[1] = bitangent;
-      TF[2] = normalize(aNormal);
-      TF    = transpose(TF);
-
-      vSunTS = TF * (inverse(uModel)*vec4(uSunDirection,0.0)).xyz;
-      vTexCoord = aTexCoord;
-   }
    
    // shadow mapping computations
    vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);

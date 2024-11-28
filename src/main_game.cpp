@@ -78,10 +78,9 @@ int height = 900;
 // textures and shading
 typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
-   SHADING_NORMALMAP,         // 1
-   SHADING_MONOCHROME_FLAT,   // 2
-   SHADING_TEXTURED_PHONG,    // 3
-   SHADING_MONOCHROME_PHONG   // 4
+   SHADING_MONOCHROME_FLAT,   // 1
+   SHADING_TEXTURED_PHONG,    // 2
+   SHADING_MONOCHROME_PHONG   // 3
 } shadingMode_t;
 
 typedef enum textureSlot {
@@ -308,7 +307,7 @@ void draw_cars(shader sh, matrix_stack stack) {
       stack.mult(glm::scale(glm::mat4(1.), glm::vec3(3.5f)));
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f,1.f,0.f)));  // make it face the direction it's going
       
-      glUniform1i(sh["uMode"], SHADING_NORMALMAP);
+      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       drawLoadedModel(stack, model_car, bbox_car, sh);
       stack.pop();
    }

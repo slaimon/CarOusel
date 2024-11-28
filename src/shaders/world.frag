@@ -102,18 +102,20 @@ float attenuation(vec3 lightPos, vec3 surfacePos) {
    return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
 }
 
-float isLit(vec3 L, vec3 N) {
+float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    if (uDrawShadows == 0.0)
       return 1.0;
 
    float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
-   vec4 pLS = (vPosSunLS/vPosSunLS.w)*0.5+0.5;
-   float depth = texture(uSunShadowmap,pLS.xy).x;
+   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
+   if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
+      return 0.0;
+   float depth = texture(shadowmap,pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
-float isLitPCF(vec3 L, vec3 N) {
+float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize) {
    if (uDrawShadows == 0.0)
       return 1.0;
    // the pixel is in shadow if the normal points away from the light source
@@ -122,44 +124,11 @@ float isLitPCF(vec3 L, vec3 N) {
 
    float storedDepth;
    float lit = 1.0;
-   vec4 pLS = (vPosSunLS/vPosSunLS.w)*0.5+0.5;
+   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  texture(uSunShadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/uSunShadowmapSize).x;
-         if(storedDepth + BIAS_PCF < pLS.z )    
-            lit  -= 1.0/25.0;
-      }
-   }
-   
-   return lit;
-}
-
-float isLitByLamp(int i, vec3 N) {
-   if (uDrawShadows == 0.0)
-      return 1.0;
-   vec3 L = normalize(uLamps[i] - vPosWS);
-   
-   float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
-   vec4 pLS = (vPosLampLS[i]/vPosLampLS[i].w)*0.5+0.5;
-   if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
-      return 0.0;
-   float depth = texture(uLampShadowmaps[i],pLS.xy).x;
-   
-   return ((depth + bias < pLS.z) ? (0.0) : (1.0));
-}
-
-float isLitByLampPCF(int i, vec3 N) {
-   if (uDrawShadows == 0.0)
-      return 1.0;
-   
-   float storedDepth;
-   float lit = 1.0;
-   vec4 pLS = (vPosLampLS[i]/vPosLampLS[i].w)*0.5+0.5;
-   
-   for(float x = 0.0; x < 5.0; x+=1.0) {
-      for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  texture(uLampShadowmaps[i], pLS.xy + vec2(-2.0+x,-2.0+y)/uLampShadowmapSize).x;
+         storedDepth =  texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize).x;
          if(storedDepth + BIAS_PCF < pLS.z )    
             lit  -= 1.0/25.0;
       }
@@ -173,8 +142,9 @@ void main(void) {
    vec4 diffuseColor;
    float sunIntensityDiff;
    float sunIntensitySpec = 0.0;
-   vec4 lampsContrib = vec4(0.0);
-   vec4 sunContrib = vec4(0.0);
+   float lampsIntensity = 0.0;
+   vec4 lampsContrib;
+   vec4 sunContrib;
    
    // textured flat shading
    if (uMode == 0) {
@@ -182,27 +152,21 @@ void main(void) {
       sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
-   // normal map shading
-   if (uMode == 1) {
-      surfaceNormal = normalize(texture2D(uNormalmapImage,vTexCoord.xy).xyz*2.0 - 1.0);
-      sunIntensityDiff = lightIntensity(normalize(vSunTS), surfaceNormal);
-      diffuseColor = texture2D(uColorImage,vTexCoord.xy);
-   }
    // monochrome flat shading
-   if (uMode == 2) {
+   if (uMode == 1) {
       surfaceNormal = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
       sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       diffuseColor = vec4(uColor, 1.0);
    }
    // textured phong shading
-   if (uMode == 3) {
+   if (uMode == 2) {
       surfaceNormal = vNormalWS;
       sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
-   if (uMode == 4) {
+   if (uMode == 3) {
       surfaceNormal = vNormalWS;
       sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
@@ -217,13 +181,14 @@ void main(void) {
 		 if (spotint == 0.0)
 		    continue;
 
-         lampsContrib += isLitByLamp(i, surfaceNormal);
+         lampsIntensity += isLit(normalize(uLamps[i] - vPosWS), surfaceNormal, vPosLampLS[i], uLampShadowmaps[i]);
       }
-      lampsContrib *= vec4(LAMPLIGHT_COLOR, 1.0);
+      lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
    
    if (uSunState == 1.0) {
-      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) * isLitPCF(vSunWS, surfaceNormal);
+      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) *
+	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize);
    }
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
