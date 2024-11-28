@@ -70,9 +70,10 @@ int height = 900;
 // opening of the street lamps' beams in angles
 #define LAMP_ANGLE_IN   15.0f
 #define LAMP_ANGLE_OUT  60.0f
+#define LAMPS_ON  1
 
 #define SUN_SHADOWMAP_SIZE  2048u
-#define LAMP_SHADOWMAP_SIZE   64u
+#define LAMP_SHADOWMAP_SIZE 1024u
 
 // textures and shading
 typedef enum shadingMode {
@@ -161,11 +162,11 @@ void updateDelta() {
 CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
 unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
 bool fineMovement = false;
-bool debugView = false;
+bool debugView = true;
 bool timeStep = true;
-bool lampState = false;
+bool lampState = true;
 bool drawShadows = true;
-bool sunState = true;
+bool sunState = false;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -470,9 +471,9 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    glFrontFace(GL_CCW);
    draw_cars(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   draw_cameramen(sh, stack);
+   //draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   draw_trees(sh, stack);
+   //draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
    draw_lamps(sh, stack);
    //draw_lightBulbs(sh);
@@ -666,7 +667,7 @@ int main(int argc, char** argv) {
 
       // draw the lamps' shadowmaps
       if (lampState) {
-         for (unsigned int i = 0; i < spotlights.size(); ++i) {
+         for (unsigned int i = 0; i < LAMPS_ON; ++i) {
             glUseProgram(shader_depth.program);
             spotlights[i].updateLightMatrixUniform(shader_depth, "uLightMatrix");
             spotlights[i].bindFramebuffer();
@@ -683,7 +684,7 @@ int main(int argc, char** argv) {
       
 
       if (debugView) {
-         for (unsigned int i = 0; i < spotlights.size(); ++i)
+         for (unsigned int i = 0; i < LAMPS_ON; ++i)
             draw_frustum(spotlights[i].lightMatrix(), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
@@ -693,7 +694,7 @@ int main(int argc, char** argv) {
          // show the shadow map 
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(spotlights[10].getTextureID(), lampShadowmapIndex[10]);
+         draw_texture(spotlights[0].getTextureID(), lampShadowmapIndex[0]);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }

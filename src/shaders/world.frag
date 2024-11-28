@@ -21,7 +21,8 @@ in vec3 posWS;
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
 
 // positions of the lights in viewspace
-#define NLAMPS 19
+#define NLAMPS     19
+#define NLAMPS_ON  1
 in vec3 vLampVS[NLAMPS];
 in vec3 vSunVS;
 
@@ -211,7 +212,7 @@ void main(void) {
    
    float spotint, lit = 1.0;
    if (uLampState == 1.0) {
-      for (int i=0; i<NLAMPS; i++) {
+      for (int i=0; i<NLAMPS_ON; i++) {
 	     // if the fragment is outside this lamp's light cone, skip all calculations
 	     spotint = spotlightIntensity(uLamps[i], posWS);
 		 if (spotint == 0.0)

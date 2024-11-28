@@ -12,7 +12,8 @@ out vec3 vNormal;
 out vec2 vTexCoord;
 
 // position of the lights in viewspace
-#define NLAMPS 19
+#define NLAMPS     19
+#define NLAMPS_ON  1
 out vec3 vSunVS;
 out vec3 vLampVS[NLAMPS];
 
@@ -64,7 +65,7 @@ void main(void) {
    vSunVS = normalize((uView*vec4(uSunDirection,0.0)).xyz);
    
    if (uLampState == 1.0) {
-      for (int i = 0; i < NLAMPS; i++) {
+      for (int i = 0; i < NLAMPS_ON; i++) {
          vLampVS[i] = (uView*vec4(uLamps[i],1.0)).xyz;
       }
    }
