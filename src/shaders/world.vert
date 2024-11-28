@@ -6,9 +6,9 @@ layout (location = 3) in vec3 aTangent;
 layout (location = 4) in vec2 aTexCoord;
 
 // transformed vertex attributes
-out vec3 vPos;
-out vec3 posWS;
-out vec3 vNormal;
+out vec3 vPosVS;
+out vec3 vPosWS;
+out vec3 vNormalWS;
 out vec2 vTexCoord;
 
 // position of the lights in viewspace
@@ -21,8 +21,9 @@ out vec3 vLampVS[NLAMPS];
 out vec3 vSunTS;
 
 // light coordinates (for shadow mapping)
-out vec4 vPosLS;
+out vec4 vPosSunLS;
 out vec3 vSunWS;
+out vec4 vPosLampLS[NLAMPS];
 
 
 // UNIFORMS:
@@ -32,6 +33,7 @@ uniform vec3 uLamps[NLAMPS];
 uniform vec3 uSunDirection;
 uniform float uLampState;
 
+uniform mat4 uLampMatrix[NLAMPS];
 uniform mat4 uSunMatrix;
 uniform int uMode;
 
@@ -67,6 +69,7 @@ void main(void) {
    if (uLampState == 1.0) {
       for (int i = 0; i < NLAMPS_ON; i++) {
          vLampVS[i] = (uView*vec4(uLamps[i],1.0)).xyz;
+		 vPosLampLS[i] = (uLampMatrix[i]*uModel*vec4(aPosition, 1.0));
       }
    }
    
@@ -85,14 +88,14 @@ void main(void) {
    }
    
    // shadow mapping computations
-   vPosLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
-   vSunWS = computeLightPosWS(vPosLS);
+   vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
+   vSunWS = computeLightPosWS(vPosSunLS);
 
    // vertex computations
-   vNormal = normalize(uView*uModel*vec4(aNormal, 0.0)).xyz;
+   vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;
    vec4 pws = (uModel*vec4(aPosition,1.0));
-   posWS = pws.xyz;
+   vPosWS = pws.xyz;
    pws = uView*pws;
-   vPos = pws.xyz; 
+   vPosVS = pws.xyz; 
    gl_Position = uProj*pws;
 }

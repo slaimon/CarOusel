@@ -626,8 +626,14 @@ int main(int argc, char** argv) {
          lampShadowmapIndex[i] = TEXTURE_SHADOWMAP_LAMPS + i;
          spotlights[i].bindTexture(lampShadowmapIndex[i]);
       }
-   
+
+      // create the lamps' light matrix vector
+      std::vector<glm::mat4> spotlightMatrix(lampLightPos.size());
+      for (unsigned int i = 0; i < lampLightPos.size(); ++i)
+         spotlightMatrix[i] = spotlights[i].lightMatrix();
+      
       glUseProgram(shader_world.program);
+      glUniformMatrix4fv(shader_world["uLampMatrix"], lampLightPos.size(), GL_FALSE, &spotlightMatrix[0][0][0]);
       glUniform1iv(shader_world["uLampShadowmaps"], lampShadowmapIndex.size(), &lampShadowmapIndex[0]);
       glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);
       glUseProgram(0);
