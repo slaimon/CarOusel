@@ -196,14 +196,14 @@ void main(void) {
    }
    // textured phong shading
    if (uMode == 3) {
-      surfaceNormal = normalize(vNormal);
+      surfaceNormal = vNormal;
       sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunVS, surfaceNormal, normalize(-vPos));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
    if (uMode == 4) {
-      surfaceNormal = normalize(vNormal);
+      surfaceNormal = vNormal;
       sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunVS, surfaceNormal, normalize(-vPos));
       diffuseColor = vec4(uColor,1.0);

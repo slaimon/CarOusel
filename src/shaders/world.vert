@@ -88,7 +88,7 @@ void main(void) {
    vSunWS = computeLightPosWS(vPosLS);
 
    // vertex computations
-   vNormal = (uView*uModel*vec4(aNormal, 0.0)).xyz;
+   vNormal = normalize(uView*uModel*vec4(aNormal, 0.0)).xyz;
    vec4 pws = (uModel*vec4(aPosition,1.0));
    posWS = pws.xyz;
    pws = uView*pws;
