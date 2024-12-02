@@ -71,6 +71,8 @@ int height = 900;
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
 #define LAMP_ANGLE_OUT  glm::radians(50.0f)
+// determines the time of day the lamps should turn on/off
+#define LAMP_NIGHTTIME_THRESHOLD 0.15f
 
 #define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE  512u
@@ -232,6 +234,13 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
+}
+
+void inline lampSunlightSwitch(glm::vec3 sunlight_direction) {
+   if (dot(normalize(sunlight_direction), glm::vec3(0.f, 1.f, 0.f)) <= LAMP_NIGHTTIME_THRESHOLD)
+      lampState = true;
+   else
+      lampState = false;
 }
 
 
@@ -647,8 +656,10 @@ int main(int argc, char** argv) {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       check_gl_errors(__LINE__, __FILE__);
       
-      if (timeStep)
+      if (timeStep) {
          r.update();
+         lampSunlightSwitch(r.sunlight_direction());
+      }
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
