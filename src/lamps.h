@@ -108,8 +108,12 @@ class LampGroup {
       }
 
       // get the light matrix of the ith active lamp
-      glm::mat4 lightMatrix(unsigned int i) {
+      glm::mat4 getLightMatrix(unsigned int i) {
          return lampProjectors[getActiveLamp(i)].lightMatrix();
+      }
+
+      SpotlightProjector getProjector(unsigned int i) {
+         return lampProjectors[getActiveLamp(i)];
       }
 
       // get the index of the ith active lamp

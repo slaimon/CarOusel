@@ -607,9 +607,10 @@ int main(int argc, char** argv) {
    lampT = lampTransform(r.t(), r.lamps(), scale, center);
    lampLightPos = lampLightPositions(lampT);
    LampGroup lamps(lampLightPos, LAMP_ANGLE_OUT, LAMP_SHADOWMAP_SIZE, TEXTURE_SHADOWMAP_LAMPS);
+   unsigned int numActiveLamps = 3;
    lamps.toggle(10);
    lamps.toggle(11);
-   lamps.toggle(18);
+   lamps.toggle(4);
 
    glUseProgram(shader_world.program);
    glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
@@ -655,7 +656,7 @@ int main(int argc, char** argv) {
 
       // draw the lamps' shadowmaps
       if (lampState) {
-         for (unsigned int i = 0; i < lamps.numActiveLamps; ++i) {
+         for (unsigned int i = 0; i < numActiveLamps; ++i) {
             glUseProgram(shader_depth.program);
             lamps.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
             lamps.bindFramebuffer(i);
@@ -672,18 +673,17 @@ int main(int argc, char** argv) {
       
 
       if (debugView) {
-         for (unsigned int i = 0; i < lamps.numActiveLamps; ++i)
-            draw_frustum(lamps.lightMatrix(i), COLOR_YELLOW);
+         for (unsigned int i = 0; i < numActiveLamps; ++i)
+            draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
          
-         // show the shadow map 
-         unsigned int j = lamps.getActiveLamp(0);
+         // show the shadow map
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(lamps.lampProjectors[j].getTextureID(), lamps.lampTextureSlots[0]);
+         draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }
