@@ -460,15 +460,16 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    draw_track(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
 
+   // the following models have opposite polygon handedness
+   glFrontFace(GL_CCW);
+   draw_cars(sh, stack);
+
    // in the depth pass, cull the front face from the following watertight models
    if (depthOnly) {
       glEnable(GL_CULL_FACE);
       glCullFace(GL_FRONT);
    }
 
-   // the following models have opposite polygon handedness
-   glFrontFace(GL_CCW);
-   draw_cars(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
    //draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
@@ -673,8 +674,9 @@ int main(int argc, char** argv) {
       
 
       if (debugView) {
-         for (unsigned int i = 0; i < numActiveLamps; ++i)
-            draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
+         if (lampState)
+            for (unsigned int i = 0; i < numActiveLamps; ++i)
+               draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
@@ -683,7 +685,10 @@ int main(int argc, char** argv) {
          // show the shadow map
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
+         if (lampState)
+            draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
+         else
+            draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }
