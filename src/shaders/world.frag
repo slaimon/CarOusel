@@ -9,8 +9,6 @@ in vec2 vTexCoord;
 #define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
-#define SHININESS          1.5
-#define SPECULAR_WEIGHT    0.0
 
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  0.01
@@ -61,6 +59,9 @@ uniform int uLampShadowmapSize;
 
 uniform int uMode;
 uniform vec3 uColor;
+uniform float uShininess;
+uniform float uDiffuse;
+uniform float uSpecular;
 uniform sampler2D uColorImage;
 uniform sampler2D uNormalmapImage;
 
@@ -73,16 +74,16 @@ vec4 sunlightColor() {
 }
 
 // L and N must be normalized
-float lightIntensity(vec3 L, vec3 N) {
-   return max(0.0, dot(L,N));
+float diffuseIntensity(vec3 L, vec3 N) {
+   return uDiffuse * max(0.0, dot(L,N));
 }
 
 float specularIntensity(vec3 L, vec3 N, vec3 V) {
-   float LN = lightIntensity(L,N);
+   float LN = diffuseIntensity(L,N);
    //vec3 R = -L+2*dot(L,N)*N;      // Phong
    vec3 H = normalize(L+V);         // Blinn-Phong
    
-   return SPECULAR_WEIGHT * ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),SHININESS));
+   return uSpecular * ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),uShininess));
 }
 
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
@@ -152,26 +153,26 @@ void main(void) {
    // textured flat shading
    if (uMode == 0) {
       surfaceNormal = normalize(cross(dFdx(vPosWS),dFdy(vPosWS)));
-      sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
+      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome flat shading
    if (uMode == 1) {
       surfaceNormal = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
-      sunIntensityDiff = lightIntensity(uSunDirection, surfaceNormal);
+      sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
       diffuseColor = vec4(uColor, 1.0);
    }
    // textured phong shading
    if (uMode == 2) {
       surfaceNormal = vNormalWS;
-      sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
+      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
    if (uMode == 3) {
       surfaceNormal = vNormalWS;
-      sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
+      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
       sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
       diffuseColor = vec4(uColor,1.0);
    }

@@ -9,6 +9,9 @@ uniform int uMode;
 uniform vec3 uColor;
 uniform sampler2D uColorImage;
 uniform sampler2D uNormalmapImage;
+uniform float uShininess;
+uniform float uDiffuse;
+uniform float uSpecular;
 
 void main(void) 
 { 

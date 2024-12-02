@@ -70,10 +70,10 @@ int height = 900;
 
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
-#define LAMP_ANGLE_OUT  glm::radians(60.0f)
+#define LAMP_ANGLE_OUT  glm::radians(50.0f)
 
 #define SUN_SHADOWMAP_SIZE  2048u
-#define LAMP_SHADOWMAP_SIZE 1024u
+#define LAMP_SHADOWMAP_SIZE  512u
 
 // textures and shading
 typedef enum shadingMode {
@@ -267,6 +267,9 @@ void draw_terrain(shader sh, matrix_stack stack) {
    glBindTexture(GL_TEXTURE_2D, texture_grass_diffuse.id);
    glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
    glUniform1i(sh["uColorImage"], TEXTURE_GRASS);
+   glUniform1f(sh["uShininess"], 25.f);
+   glUniform1f(sh["uDiffuse"], 0.9f);
+   glUniform1f(sh["uSpecular"], 0.1f);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_terrain().mode, r_terrain().count, r_terrain().itype, 0);
    glUseProgram(0);
@@ -308,6 +311,9 @@ void draw_cars(shader sh, matrix_stack stack) {
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f,1.f,0.f)));  // make it face the direction it's going
       
       glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+      glUniform1f(sh["uShininess"], 75.f);
+      glUniform1f(sh["uDiffuse"], 0.7f);
+      glUniform1f(sh["uSpecular"], 0.7f);
       drawLoadedModel(stack, model_car, bbox_car, sh);
       stack.pop();
    }
@@ -327,8 +333,11 @@ void draw_cameramen(shader sh, matrix_stack stack) {
       stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f,0.25f,0.f)));
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f,1.f,0.f)));
       
-      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       glUniform1i(sh["uMode"], SHADING_MONOCHROME_PHONG);
+      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
+      glUniform1f(sh["uShininess"], 50.f);
+      glUniform1f(sh["uDiffuse"], 0.9f);
+      glUniform1f(sh["uSpecular"], 0.6f);
       
       drawLoadedModel(stack, model_camera, bbox_camera, sh);
       stack.pop();
@@ -354,12 +363,14 @@ void draw_lightBulbs(shader sh) {
 }
 void draw_lamps(shader sh, matrix_stack stack) {
    glUseProgram(sh.program);
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1f(sh["uShininess"], 75.f);
+   glUniform1f(sh["uDiffuse"], 0.7f);
+   glUniform1f(sh["uSpecular"], 0.7f);
    for (unsigned int i = 0; i < lampT.size(); ++i) {
       stack.push();
       stack.load(lampT[i]);
 
-      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
-      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       drawLoadedModel(stack, model_lamp, bbox_lamp, sh);
       
       stack.pop();
@@ -371,12 +382,15 @@ std::vector<glm::mat4> treeT;
 void draw_trees(shader sh, matrix_stack stack) {
    glUseProgram(sh.program);
    glDisable(GL_CULL_FACE);
+
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1f(sh["uShininess"], 25.f);
+   glUniform1f(sh["uDiffuse"], 1.f);
+   glUniform1f(sh["uSpecular"], 0.1f);
    for (unsigned int i = 0; i < treeT.size(); i++) {
       stack.push();
       stack.load(treeT[i]);
       
-      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
-      glUniform3f(sh["uColor"], 0.3f, 0.9f, 0.3f);
       drawLoadedModel(stack, model_tree, bbox_tree, sh);
       
       stack.pop();
@@ -471,9 +485,9 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
 
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_cameramen(sh, stack);
+   draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_trees(sh, stack);
+   draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
    draw_lamps(sh, stack);
    //draw_lightBulbs(sh);
@@ -611,7 +625,7 @@ int main(int argc, char** argv) {
    unsigned int numActiveLamps = 3;
    lamps.toggle(10);
    lamps.toggle(11);
-   lamps.toggle(4);
+   lamps.toggle(14);
 
    glUseProgram(shader_world.program);
    glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
