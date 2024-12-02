@@ -13,7 +13,7 @@ out vec2 vTexCoord;
 
 // position of the lights in viewspace
 #define NLAMPS     19
-#define NLAMPS_ON  1
+#define NLAMPS_ON  3
 out vec3 vSunVS;
 out vec3 vLampVS[NLAMPS];
 

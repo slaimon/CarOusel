@@ -22,7 +22,7 @@ in vec2 vTexCoord;
 
 // positions of the lights in viewspace
 #define NLAMPS     19
-#define NLAMPS_ON  1
+#define NLAMPS_ON  3
 in vec3 vLampVS[NLAMPS];
 in vec3 vSunVS;
 
@@ -30,7 +30,8 @@ in vec3 vSunVS;
 in vec3 vSunTS;
 
 // Shadow Mapping
-#define BIAS_PCF     0.005
+#define BIAS_PCF_SUN   0.005
+#define BIAS_PCF_LAMP  0.001
 #define BIAS_A       0.01
 #define BIAS_MIN_E   0.001
 #define BIAS_MAX_E   0.2
@@ -115,7 +116,7 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
-float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize) {
+float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
    if (uDrawShadows == 0.0)
       return 1.0;
    // the pixel is in shadow if the normal points away from the light source
@@ -129,7 +130,7 @@ float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSiz
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
          storedDepth =  texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize).x;
-         if(storedDepth + BIAS_PCF < pLS.z )    
+         if(storedDepth + bias < pLS.z )    
             lit  -= 1.0/25.0;
       }
    }
@@ -148,14 +149,14 @@ void main(void) {
    
    // textured flat shading
    if (uMode == 0) {
-      surfaceNormal = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
-      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
+      surfaceNormal = normalize(cross(dFdx(vPosWS),dFdy(vPosWS)));
+      sunIntensityDiff = lightIntensity(vSunWS, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome flat shading
    if (uMode == 1) {
       surfaceNormal = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
-      sunIntensityDiff = lightIntensity(vSunVS, surfaceNormal);
+      sunIntensityDiff = lightIntensity(uSunDirection, surfaceNormal);
       diffuseColor = vec4(uColor, 1.0);
    }
    // textured phong shading
@@ -181,14 +182,14 @@ void main(void) {
 		 if (spotint == 0.0)
 		    continue;
 
-         lampsIntensity += isLit(normalize(uLamps[i] - vPosWS), surfaceNormal, vPosLampLS[i], uLampShadowmaps[i]);
+         lampsIntensity += spotint * isLitPCF(normalize(uLamps[i] - vPosWS), surfaceNormal, vPosLampLS[i], uLampShadowmaps[i], uLampShadowmapSize, BIAS_PCF_LAMP);
       }
       lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
    
    if (uSunState == 1.0) {
       sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) *
-	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize);
+	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize, BIAS_PCF_SUN);
    }
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);

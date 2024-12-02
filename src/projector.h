@@ -116,7 +116,7 @@ class SpotlightProjector : public Projector {
          viewMatrix[3] = glm::vec4(lightPosition, 1.f);
          viewMatrix = glm::inverse(viewMatrix);
 
-         float nearPlane = 0.005;
+         float nearPlane = 0.001;
          float farPlane = 0.07;
          projMatrix = glm::perspective(2.0f*lightAngle_out, 1.0f, nearPlane, farPlane);
       }
@@ -126,8 +126,8 @@ class SpotlightProjector : public Projector {
          : Projector(shadowmap_size) {
          lightPosition = light_position;
          lightDirection = direction;
-         lightAngle_in = glm::cos(glm::radians(angle_in));
-         lightAngle_out = glm::cos(glm::radians(angle_out));
+         lightAngle_in = angle_in;
+         lightAngle_out = angle_out;
          update();
       }
 };

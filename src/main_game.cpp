@@ -67,10 +67,10 @@ int height = 900;
 #define COLOR_WHITE  glm::vec3(1.f,1.f,1.f)
 #define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
 
-// opening of the street lamps' beams in angles
-#define LAMP_ANGLE_IN   15.0f
-#define LAMP_ANGLE_OUT  60.0f
-#define LAMPS_ON  1
+// opening angles of the street lamps' beam
+#define LAMP_ANGLE_IN   glm::radians(15.0f)
+#define LAMP_ANGLE_OUT  glm::radians(60.0f)
+#define LAMPS_ON  3
 
 #define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE 1024u
@@ -608,8 +608,8 @@ int main(int argc, char** argv) {
    lampLightPos = lampLightPositions(lampT);
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
-   glUniform1f(shader_world["uLampAngleIn"], glm::cos(glm::radians(LAMP_ANGLE_IN)));
-   glUniform1f(shader_world["uLampAngleOut"], glm::cos(glm::radians(LAMP_ANGLE_OUT)));
+   glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
+   glUniform1f(shader_world["uLampAngleOut"], glm::cos(LAMP_ANGLE_OUT));
    glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
    glUseProgram(0);
 
