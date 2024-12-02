@@ -1,8 +1,21 @@
 #pragma once
 #include "projector.h"
 
+/*
+   This class controls a group of lamps of which only a subset are active.
+   Call the constructor, then toggle the lamps by calling the provided method.
+   Turning lamps off is untested and pointless since limitations to GLSL mean
+   you can't dinamically modify the length of a For loop anyway.
+
+   After turning the lights on you can access their properties by using the
+   provided methods. Make sure you use the correct index to access them:
+   almost all methods use active-lamp indexing (e.g. index 0 corresponds to
+   the first lamp you turned on), except toggle() which of course uses the
+   actual index of the lamp.
+*/
+
 class LampGroup {
-   public:
+   protected:
       unsigned int size;
       unsigned int numActiveLamps;
       std::vector<SpotlightProjector> lampProjectors;
@@ -12,6 +25,32 @@ class LampGroup {
       std::vector<bool> lampState;
       std::vector<unsigned int> activeLamps;
 
+      void updateActiveLampTable(unsigned int hasChanged) {
+         // a lamp has turned on
+         if (lampState[hasChanged]) {
+            activeLamps[numActiveLamps] = hasChanged;
+            ++numActiveLamps;
+         }
+         // a lamp has turned off
+         else {
+            bool found = false;
+            unsigned int index;
+            for (unsigned int i = 0; i < numActiveLamps; ++i)
+               if (activeLamps[i] == hasChanged) {
+                  found = true;
+                  index = i;
+                  break;
+               }
+
+            if (!found)
+               return;
+
+            activeLamps[index] = activeLamps[numActiveLamps - 1];
+            --numActiveLamps;
+         }
+      }
+
+   public:
       // initially all lamps are off
       LampGroup(std::vector<glm::vec3> positions, float angle_out, unsigned int shadowmap_size, int texture_slot_base) {
          size = positions.size();
@@ -40,19 +79,12 @@ class LampGroup {
          numActiveLamps = 0;
       }
 
-      glm::mat4 lightMatrix(unsigned int i) {
-         return lampProjectors[getActiveLamp(i)].lightMatrix();
-      }
-
+      // get total number of lamps
       unsigned int getSize() {
          return size;
       }
 
-      unsigned int getActiveLamp(unsigned int i) {
-         assert(i < numActiveLamps);
-         return activeLamps[i];
-      }
-
+      // get the light matrix buffer, can be passed as uniform
       std::vector<glm::mat4> getLightMatrices() {
          std::vector<glm::mat4> result(size);
          for (unsigned int i = 0; i < numActiveLamps; ++i)
@@ -61,6 +93,7 @@ class LampGroup {
          return result;
       }
 
+      // get the positions buffer, can be passed as uniform
       std::vector<glm::vec3> getPositions() {
          std::vector<glm::vec3> result(size);
          for (unsigned int i = 0; i < numActiveLamps; ++i)
@@ -69,49 +102,40 @@ class LampGroup {
          return result;
       }
 
+      // get the texture slot buffer, can be passed as uniform
       std::vector<int> getTextureSlots() {
          return lampTextureSlots;
       }
 
-      void updateActiveLampTable(unsigned int hasChanged) {
-         // a lamp has turned on
-         if (lampState[hasChanged]) {
-            activeLamps[numActiveLamps] = hasChanged;
-            ++numActiveLamps;
-         }
-         // a lamp has turned off
-         else {
-            bool found = false;
-            unsigned int index;
-            for (unsigned int i = 0; i < numActiveLamps; ++i)
-               if (activeLamps[i] == hasChanged) {
-                  found = true;
-                  index = i;
-                  break;
-               }
-
-            if (!found)
-               return;
-
-            activeLamps[index] = activeLamps[numActiveLamps - 1];
-            --numActiveLamps;
-         }
+      // get the light matrix of the ith active lamp
+      glm::mat4 lightMatrix(unsigned int i) {
+         return lampProjectors[getActiveLamp(i)].lightMatrix();
       }
 
+      // get the index of the ith active lamp
+      unsigned int getActiveLamp(unsigned int i) {
+         assert(i < numActiveLamps);
+         return activeLamps[i];
+      }
+
+      // toggle ith lamp
       void toggle(unsigned int i) {
          assert(i < size);
          lampState[i] = !lampState[i];
          updateActiveLampTable(i);
       }
 
+      // update the light matrix uniform of the ith active lamp
       void updateLightMatrixUniform(unsigned int i, shader s, const char* uniform_name) {
          lampProjectors[getActiveLamp(i)].updateLightMatrixUniform(s, uniform_name);
       }
 
+      // bind the framebuffer of the ith active lamp
       void bindFramebuffer(unsigned int i) {
          lampProjectors[getActiveLamp(i)].bindFramebuffer();
       }
 
+      // bind the texture of the ith active lamp
       void bindTexture(unsigned int i) {
          lampProjectors[getActiveLamp(i)].bindTexture(lampTextureSlots[i]);
       }
