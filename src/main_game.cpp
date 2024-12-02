@@ -30,6 +30,7 @@
 #include "camera_controls.h"
 #include "transformations.h"
 #include "projector.h"
+#include "lamps.h"
 
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -70,7 +71,6 @@ int height = 900;
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
 #define LAMP_ANGLE_OUT  glm::radians(60.0f)
-#define LAMPS_ON  3
 
 #define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE 1024u
@@ -161,10 +161,10 @@ void updateDelta() {
 CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
 unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
 bool fineMovement = false;
-bool debugView = true;
+bool debugView = false;
 bool timeStep = true;
-bool lampState = true;
-bool drawShadows = true;
+bool lampState = false;
+bool drawShadows = false;
 bool sunState = false;
 float playerMinHeight = 0.01;
 
@@ -606,36 +606,20 @@ int main(int argc, char** argv) {
    // initialize the lamps and their lights
    lampT = lampTransform(r.t(), r.lamps(), scale, center);
    lampLightPos = lampLightPositions(lampT);
+   LampGroup lamps(lampLightPos, LAMP_ANGLE_OUT, LAMP_SHADOWMAP_SIZE, TEXTURE_SHADOWMAP_LAMPS);
+   lamps.toggle(10);
+
    glUseProgram(shader_world.program);
    glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
    glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
    glUniform1f(shader_world["uLampAngleOut"], glm::cos(LAMP_ANGLE_OUT));
    glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
+   glUniformMatrix4fv(shader_world["uLampMatrix"], lamps.size, GL_FALSE, &lamps.lampMatrices[0][0][0]);
+   glUniform1iv(shader_world["uLampShadowmaps"], lamps.size, &lamps.lampTextureSlots[0]);
+   glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);
+   glUniform1ui(shader_world["uNumActiveLamps"], lamps.numActiveLamps);
+   glUniform1uiv(shader_world["uActiveLamps"], lamps.size, &lamps.activeLamps[0]);
    glUseProgram(0);
-
-      // create the spotlight projectors
-      std::vector<SpotlightProjector> spotlights;
-      spotlights.reserve(lampLightPos.size());
-      for (unsigned int i = 0; i < lampLightPos.size(); ++i)
-         spotlights.emplace_back(LAMP_SHADOWMAP_SIZE, lampLightPos[i], LAMP_ANGLE_IN, LAMP_ANGLE_OUT, glm::vec3(0.0, -1.0, 0.0));
-
-      // assign them texture slots
-      std::vector<int> lampShadowmapIndex(lampLightPos.size());
-      for (unsigned int i = 0; i < lampShadowmapIndex.size(); ++i) {
-         lampShadowmapIndex[i] = TEXTURE_SHADOWMAP_LAMPS + i;
-         spotlights[i].bindTexture(lampShadowmapIndex[i]);
-      }
-
-      // create the lamps' light matrix vector
-      std::vector<glm::mat4> spotlightMatrix(lampLightPos.size());
-      for (unsigned int i = 0; i < lampLightPos.size(); ++i)
-         spotlightMatrix[i] = spotlights[i].lightMatrix();
-      
-      glUseProgram(shader_world.program);
-      glUniformMatrix4fv(shader_world["uLampMatrix"], lampLightPos.size(), GL_FALSE, &spotlightMatrix[0][0][0]);
-      glUniform1iv(shader_world["uLampShadowmaps"], lampShadowmapIndex.size(), &lampShadowmapIndex[0]);
-      glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);
-      glUseProgram(0);
    
    // initialize the trees
    treeT = treeTransform(r.trees(), scale, center);
@@ -669,14 +653,14 @@ int main(int argc, char** argv) {
          draw_scene(stack, true);
       }
 
-
       // draw the lamps' shadowmaps
       if (lampState) {
-         for (unsigned int i = 0; i < LAMPS_ON; ++i) {
+         for (unsigned int i = 0; i < lamps.numActiveLamps; ++i) {
             glUseProgram(shader_depth.program);
-            spotlights[i].updateLightMatrixUniform(shader_depth, "uLightMatrix");
-            spotlights[i].bindFramebuffer();
-            spotlights[i].bindTexture(lampShadowmapIndex[i]);
+            unsigned int j = lamps.getActiveLamp(i);
+            lamps.updateLightMatrixUniform(j, shader_depth, "uLightMatrix");
+            lamps.bindFramebuffer(j);
+            lamps.bindTexture(j);
             draw_scene(stack, true);
          }
          glUseProgram(0);
@@ -689,17 +673,18 @@ int main(int argc, char** argv) {
       
 
       if (debugView) {
-         for (unsigned int i = 0; i < LAMPS_ON; ++i)
-            draw_frustum(spotlights[i].lightMatrix(), COLOR_YELLOW);
+         for (unsigned int i = 0; i < lamps.numActiveLamps; ++i)
+            draw_frustum(lamps.lightMatrix(lamps.getActiveLamp(i)), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
          
          // show the shadow map 
+         unsigned int j = lamps.getActiveLamp(0);
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(spotlights[0].getTextureID(), lampShadowmapIndex[0]);
+         draw_texture(lamps.lampProjectors[j].getTextureID(), lamps.lampTextureSlots[j]);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }

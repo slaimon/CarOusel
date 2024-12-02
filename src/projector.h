@@ -1,3 +1,4 @@
+#pragma once
 #include <glm/glm.hpp>  
 #include <glm/ext.hpp>
 
@@ -106,7 +107,6 @@ class SpotlightProjector : public Projector {
    protected:
       glm::vec3 lightPosition;
       glm::vec3 lightDirection;
-      float lightAngle_in;
       float lightAngle_out;
 
       void update() {
@@ -122,11 +122,10 @@ class SpotlightProjector : public Projector {
       }
 
    public:
-      SpotlightProjector(unsigned int shadowmap_size, glm::vec3 light_position, float angle_in, float angle_out, glm::vec3 direction)
+      SpotlightProjector(unsigned int shadowmap_size, glm::vec3 light_position, float angle_out, glm::vec3 direction)
          : Projector(shadowmap_size) {
          lightPosition = light_position;
          lightDirection = direction;
-         lightAngle_in = angle_in;
          lightAngle_out = angle_out;
          update();
       }

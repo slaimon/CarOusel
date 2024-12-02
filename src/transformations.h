@@ -85,6 +85,7 @@ inline std::vector<glm::mat4> lampTransform(track t, std::vector<stick_object> l
     return result;
 }
 
+// given the vector returned by lampTransform, returns the position of each lamp's lightbulb
 inline std::vector<glm::vec3> lampLightPositions(std::vector<glm::mat4> lampTransforms) {
     std::vector<glm::vec3> result(lampTransforms.size());
     glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.1, 0.45, 0.f));

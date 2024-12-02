@@ -22,7 +22,6 @@ in vec2 vTexCoord;
 
 // positions of the lights in viewspace
 #define NLAMPS     19
-#define NLAMPS_ON  3
 in vec3 vLampVS[NLAMPS];
 in vec3 vSunVS;
 
@@ -50,6 +49,8 @@ uniform float uLampState;
 uniform float uLampAngleIn;
 uniform float uLampAngleOut;
 uniform vec3 uLampDirection;
+uniform uint uNumActiveLamps;
+uniform uint uActiveLamps[NLAMPS];
 
 uniform float uDrawShadows;
 uniform int uSunShadowmapSize;
@@ -175,14 +176,16 @@ void main(void) {
    }
    
    float spotint, lit = 1.0;
+   uint j;
    if (uLampState == 1.0) {
-      for (int i=0; i<NLAMPS_ON; i++) {
+      for (int i = 0; i < uNumActiveLamps; ++i) {
+	     j = uActiveLamps[i];
 	     // if the fragment is outside this lamp's light cone, skip all calculations
-	     spotint = spotlightIntensity(uLamps[i], vPosWS);
+	     spotint = spotlightIntensity(uLamps[j], vPosWS);
 		 if (spotint == 0.0)
 		    continue;
 
-         lampsIntensity += spotint * isLitPCF(normalize(uLamps[i] - vPosWS), surfaceNormal, vPosLampLS[i], uLampShadowmaps[i], uLampShadowmapSize, BIAS_PCF_LAMP);
+         lampsIntensity += spotint * isLitPCF(normalize(uLamps[j] - vPosWS), surfaceNormal, vPosLampLS[j], uLampShadowmaps[j], uLampShadowmapSize, BIAS_PCF_LAMP);
       }
       lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
