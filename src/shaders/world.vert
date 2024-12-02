@@ -12,9 +12,10 @@ out vec3 vNormalWS;
 out vec2 vTexCoord;
 
 // position of the lights in viewspace
-#define NLAMPS     19
+#define NUM_LAMPS         19
+#define NUM_ACTIVE_LAMPS   3
 out vec3 vSunVS;
-out vec3 vLampVS[NLAMPS];
+out vec3 vLampVS[NUM_LAMPS];
 
 // position of the sun in tangent space (for normal mapping)
 out vec3 vSunTS;
@@ -22,19 +23,19 @@ out vec3 vSunTS;
 // light coordinates (for shadow mapping)
 out vec4 vPosSunLS;
 out vec3 vSunWS;
-out vec4 vPosLampLS[NLAMPS];
+out vec4 vPosLampLS[NUM_LAMPS];
 
 
 // UNIFORMS:
 
 // positions of the lights in worldspace
-uniform vec3 uLamps[NLAMPS];
+uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uSunDirection;
 uniform float uLampState;
 uniform uint uNumActiveLamps;
-uniform uint uActiveLamps[NLAMPS];
+uniform uint uActiveLamps[NUM_LAMPS];
 
-uniform mat4 uLampMatrix[NLAMPS];
+uniform mat4 uLampMatrix[NUM_LAMPS];
 uniform mat4 uSunMatrix;
 uniform int uMode;
 
@@ -69,10 +70,9 @@ void main(void) {
    
    uint j;
    if (uLampState == 1.0) {
-      for (int i = 0; i < uNumActiveLamps; i++) {
-	     j = uActiveLamps[i];
-         vLampVS[j] = (uView*vec4(uLamps[j],1.0)).xyz;
-		 vPosLampLS[j] = (uLampMatrix[j]*uModel*vec4(aPosition, 1.0));
+      for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
+         vLampVS[i] = (uView*vec4(uLamps[i],1.0)).xyz;
+		 vPosLampLS[i] = (uLampMatrix[i]*uModel*vec4(aPosition, 1.0));
       }
    }
    

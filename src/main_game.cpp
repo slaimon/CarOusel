@@ -164,8 +164,8 @@ bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
 bool lampState = false;
-bool drawShadows = false;
-bool sunState = false;
+bool drawShadows = true;
+bool sunState = true;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -608,17 +608,17 @@ int main(int argc, char** argv) {
    lampLightPos = lampLightPositions(lampT);
    LampGroup lamps(lampLightPos, LAMP_ANGLE_OUT, LAMP_SHADOWMAP_SIZE, TEXTURE_SHADOWMAP_LAMPS);
    lamps.toggle(10);
+   lamps.toggle(11);
+   lamps.toggle(18);
 
    glUseProgram(shader_world.program);
-   glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
    glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
    glUniform1f(shader_world["uLampAngleOut"], glm::cos(LAMP_ANGLE_OUT));
    glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
-   glUniformMatrix4fv(shader_world["uLampMatrix"], lamps.size, GL_FALSE, &lamps.lampMatrices[0][0][0]);
-   glUniform1iv(shader_world["uLampShadowmaps"], lamps.size, &lamps.lampTextureSlots[0]);
+   glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lamps.getSize(), &lamps.getPositions()[0][0]);
+   glUniformMatrix4fv(shader_world["uLampMatrix"], lamps.getSize(), GL_FALSE, &lamps.getLightMatrices()[0][0][0]);
+   glUniform1iv(shader_world["uLampShadowmaps"], lamps.getSize(), &lamps.getTextureSlots()[0]);
    glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);
-   glUniform1ui(shader_world["uNumActiveLamps"], lamps.numActiveLamps);
-   glUniform1uiv(shader_world["uActiveLamps"], lamps.size, &lamps.activeLamps[0]);
    glUseProgram(0);
    
    // initialize the trees
@@ -657,10 +657,9 @@ int main(int argc, char** argv) {
       if (lampState) {
          for (unsigned int i = 0; i < lamps.numActiveLamps; ++i) {
             glUseProgram(shader_depth.program);
-            unsigned int j = lamps.getActiveLamp(i);
-            lamps.updateLightMatrixUniform(j, shader_depth, "uLightMatrix");
-            lamps.bindFramebuffer(j);
-            lamps.bindTexture(j);
+            lamps.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
+            lamps.bindFramebuffer(i);
+            lamps.bindTexture(i);
             draw_scene(stack, true);
          }
          glUseProgram(0);
@@ -674,7 +673,7 @@ int main(int argc, char** argv) {
 
       if (debugView) {
          for (unsigned int i = 0; i < lamps.numActiveLamps; ++i)
-            draw_frustum(lamps.lightMatrix(lamps.getActiveLamp(i)), COLOR_YELLOW);
+            draw_frustum(lamps.lightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
@@ -684,7 +683,7 @@ int main(int argc, char** argv) {
          unsigned int j = lamps.getActiveLamp(0);
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(lamps.lampProjectors[j].getTextureID(), lamps.lampTextureSlots[j]);
+         draw_texture(lamps.lampProjectors[j].getTextureID(), lamps.lampTextureSlots[0]);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }
