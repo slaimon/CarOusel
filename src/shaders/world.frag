@@ -1,14 +1,14 @@
 #version 410 core  
-out vec4 color; 
+out vec4 color;
 
-in vec3 vPosVS;
-in vec3 vPosWS;
-in vec3 vNormalWS;
-in vec2 vTexCoord;
-
+// light colors
 #define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
+
+// lamp group parameters
+#define NUM_LAMPS         19
+#define NUM_ACTIVE_LAMPS   3
 
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  0.01
@@ -18,52 +18,56 @@ in vec2 vTexCoord;
 // spotlight parameters
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
 
-// positions of the lights in viewspace
-#define NUM_LAMPS         19
-#define NUM_ACTIVE_LAMPS   3
-in vec3 vLampVS[NUM_LAMPS];
-in vec3 vSunVS;
-
-// Normal Mapping
-in vec3 vSunTS;
-
-// Shadow Mapping
+// shadow mapping parameters
 #define BIAS_PCF_SUN   0.005
 #define BIAS_PCF_LAMP  0.001
 #define BIAS_A       0.01
 #define BIAS_MIN_E   0.001
 #define BIAS_MAX_E   0.2
+
+
+/*   ------   INPUTS   ------   */
+
+// interpolated vertex attributes
+in vec3 vPosWS;
+in vec3 vNormalWS;
+in vec2 vTexCoord;
+
+// light coordinates
 in vec4 vPosSunLS;
 in vec3 vSunWS;
 in vec4 vPosLampLS[NUM_LAMPS];
 
 
-// UNIFORMS:
+/*   ------   UNIFORMS   ------   */
 
+// coordinates of the lamps in world space
 uniform vec3 uSunDirection;
 uniform float uSunState;
-
 uniform vec3 uLamps[NUM_LAMPS];
+uniform vec3 uLampDirection;
+
+// lamp parameters
 uniform float uLampState;
 uniform float uLampAngleIn;
 uniform float uLampAngleOut;
-uniform vec3 uLampDirection;
-uniform uint uNumActiveLamps;
-uniform uint uActiveLamps[NUM_LAMPS];
 
+// shadow maps
 uniform float uDrawShadows;
 uniform int uSunShadowmapSize;
 uniform sampler2D uSunShadowmap;
 uniform sampler2D uLampShadowmaps[NUM_LAMPS];
 uniform int uLampShadowmapSize;
 
+// rendering mode
 uniform int uMode;
+
+// material parameters
 uniform vec3 uColor;
 uniform float uShininess;
 uniform float uDiffuse;
 uniform float uSpecular;
 uniform sampler2D uColorImage;
-uniform sampler2D uNormalmapImage;
 
 float tanacos(float x) {
    return sqrt(1-x*x)/x;
@@ -158,7 +162,7 @@ void main(void) {
    }
    // monochrome flat shading
    if (uMode == 1) {
-      surfaceNormal = normalize(cross(dFdx(vPosVS),dFdy(vPosVS)));
+      surfaceNormal = normalize(cross(dFdx(vPosWS),dFdy(vPosWS)));
       sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
       diffuseColor = vec4(uColor, 1.0);
    }
