@@ -10,9 +10,7 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Press **E** to toggle between fast and slow movement (useful to observe the details)
 
-- Press **Q** to toggle shadows.
-
-- Press **K** or **L** to toggle sunlight or the street lamps, respectively.
+- Press **Q** to toggle shadows and **L** to toggle sunlight.
 
 - Press **T** to stop the sun and the cars from moving. When you press T again, they will skip ahead to where they would've been.
 

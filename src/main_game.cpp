@@ -211,10 +211,6 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
          
          case GLFW_KEY_L:
-            lampState = !lampState;
-            break;
-         
-         case GLFW_KEY_K:
             sunState = !sunState;
             break;
 
