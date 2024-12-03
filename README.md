@@ -24,11 +24,11 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Phong shading with textures for the terrain, lamps and trees
 
-- Normal mapping on the cars
-
 - POV-switching
 
 - Shadow mapping to cast shadows from the sun, with tight frustum fitting to avoid precision loss at shallow angles 
+
+- The lamps turn on automatically at night, casting real-time shadows
 
 ### Dependencies
 
