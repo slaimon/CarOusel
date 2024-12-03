@@ -4,7 +4,35 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
+#include "../common/box3.h"
 #include "../common/carousel/carousel.h"
+
+// returns a vector containing the 8 corners of a box3 object
+inline std::vector<glm::vec4> getBoxCorners(box3 box) {
+   std::vector<glm::vec4> corners(8);
+
+   corners[0] = glm::vec4(box.min, 1.0);
+   corners[1] = glm::vec4(box.min.x, box.min.y, box.max.z, 1.0);
+   corners[2] = glm::vec4(box.min.x, box.max.y, box.max.z, 1.0);
+   corners[3] = glm::vec4(box.min.x, box.max.y, box.min.z, 1.0);
+   corners[4] = glm::vec4(box.max.x, box.max.y, box.min.z, 1.0);
+   corners[5] = glm::vec4(box.max.x, box.min.y, box.min.z, 1.0);
+   corners[6] = glm::vec4(box.max.x, box.min.y, box.max.z, 1.0);
+   corners[7] = glm::vec4(box.max, 1.0);
+
+   return corners;
+}
+
+// returns an approximation for the bounding box under the transformation T
+inline box3 transformBoundingBox(box3 box, glm::mat4 T) {
+   box3 aabb(0.0);
+
+   std::vector<glm::vec4> corners = getBoxCorners(box);
+   for (int i = 0; i < 8; i++)
+      aabb.add(glm::vec3(T * corners[i]));
+
+   return aabb;
+}
 
 // returns the vector pointing from the given point to the curb vertex closest to it
 inline glm::vec3 findClosestCurbVertex(track t, glm::vec3 lamp_position) {
@@ -57,6 +85,7 @@ inline std::vector<glm::mat4> lampTransform(track t, std::vector<stick_object> l
     return result;
 }
 
+// given the vector returned by lampTransform, returns the position of each lamp's lightbulb
 inline std::vector<glm::vec3> lampLightPositions(std::vector<glm::mat4> lampTransforms) {
     std::vector<glm::vec3> result(lampTransforms.size());
     glm::mat4 T = glm::translate(glm::mat4(1.f), glm::vec3(-0.1, 0.45, 0.f));

@@ -10,23 +10,25 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Press **E** to toggle between fast and slow movement (useful to observe the details)
 
-- Press **Q** to toggle shadows
+- Press **Q** to toggle shadows.
+
+- Press **K** or **L** to toggle sunlight or the street lamps, respectively.
 
 - Press **T** to stop the sun and the cars from moving. When you press T again, they will skip ahead to where they would've been.
 
 - Press **C** to cycle between the available cameras.
 
-- Press **V** to toggle the debug view: this will show the sun's shadowmap and its projection frustum
+- Press **V** to toggle the debug view: this will show the sun's shadowmap and its projection frustum.
 
 ### Features
 
 - Phong shading with textures for the terrain, lamps and trees
 
-- Normal mapping on the cars
-
 - POV-switching
 
 - Shadow mapping to cast shadows from the sun, with tight frustum fitting to avoid precision loss at shallow angles 
+
+- The lamps turn on automatically at night, casting real-time shadows
 
 ### Dependencies
 

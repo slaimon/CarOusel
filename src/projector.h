@@ -1,74 +1,132 @@
+#pragma once
 #include <glm/glm.hpp>  
-#include <glm/ext.hpp> 
+#include <glm/ext.hpp>
 
+#include "transformations.h"
 #include "../common/box3.h"
 #include "../common/texture.h"
 #include "../common/frame_buffer_object.h"
 
-// the Projector class represents a directional light
+// Abstract Class; represents a light capable of casting shadows
 class Projector {
-	   glm::mat4 viewMatrix, projMatrix;
-	   box3 sceneBoundingBox;
-	   glm::vec3 lightDirection;
-	   unsigned int shadowmapSize;
-	   frame_buffer_object shadowmapFBO;
-	   
-	   void update() {
-	      viewMatrix = lookAt(-lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
-		   box3 box = sceneBoundingBox;
-		   box3 aabb(glm::vec3(0.f),glm::vec3(0.f));
-		   
-		   // we transform the corners of the bounding box into the light's frame
-		   glm::vec4 corners[8];
-		   corners[0] = glm::vec4(box.min, 1.0);
-		   corners[1] = glm::vec4(box.min.x, box.min.y, box.max.z, 1.0);
-		   corners[2] = glm::vec4(box.min.x, box.max.y, box.max.z, 1.0);
-		   corners[3] = glm::vec4(box.min.x, box.max.y, box.min.z, 1.0);
-		   corners[4] = glm::vec4(box.max.x, box.max.y, box.min.z, 1.0);
-		   corners[5] = glm::vec4(box.max.x, box.min.y, box.min.z, 1.0);
-		   corners[6] = glm::vec4(box.max.x, box.min.y, box.max.z, 1.0);
-		   corners[7] = glm::vec4(box.max, 1.0);
-		   
-		   // minus the translation
-		   viewMatrix[3][0] = 0.f;
-		   viewMatrix[3][1] = 0.f;
-		   viewMatrix[3][2] = 0.f;
-		   
-		   for (int i=0; i<8; i++)
-		      aabb.add(glm::vec3(viewMatrix*corners[i]));
-		   
-		   // and that gives us the parameters of the light's view frustum
-		   float farPlane = std::max(-aabb.max.z, -aabb.min.z);
-		   float nearPlane = std::min(-aabb.max.z, -aabb.min.z);
-		   projMatrix =  glm::ortho(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, nearPlane, farPlane);
-	   }
+   protected:
+      glm::mat4 viewMatrix, projMatrix;
+      frame_buffer_object shadowmapFBO;
+      unsigned int shadowmapSize;
+
+      Projector(unsigned int shadowmap_size) {
+         viewMatrix = projMatrix = glm::mat4(1.0);
+         shadowmapSize = shadowmap_size;
+         shadowmapFBO.create(shadowmapSize, shadowmapSize);
+      }
 
    public:
-	   Projector(box3 box, unsigned int shadowmap_size, glm::vec3 light_direction = glm::vec3(0.f,-1.f,0.f)) {
-	      sceneBoundingBox = box;
-	      lightDirection = glm::normalize(light_direction);
-		  shadowmapSize = shadowmap_size;
-		  shadowmapFBO.create(shadowmapSize, shadowmapSize);
-	   }
+      glm::mat4 lightMatrix() {
+         return projMatrix * viewMatrix;
+      }
 
-	   void setDirection(glm::vec3 light_direction) {
-	      lightDirection = glm::normalize(light_direction);
-	      update();
-	   }
-	   
-	   glm::mat4 lightMatrix() {
-		   return projMatrix*viewMatrix;
-	   }
+      unsigned int getShadowmapSize() {
+         return shadowmapSize;
+      }
 
-	   unsigned int getShadowmapSize() {
-		   return shadowmapSize;
-	   }
+      unsigned int getTextureID() {
+         return shadowmapFBO.id_tex;
+      }
 
-	   unsigned int getTextureID() {
-		   return shadowmapFBO.id_tex;
-	   }
+      unsigned int getFrameBufferID() {
+         return shadowmapFBO.id_fbo;
+      }
 
-	   unsigned int getFrameBufferID() {
-		   return shadowmapFBO.id_fbo;
-	   }
+      void bindFramebuffer() {
+         glBindFramebuffer(GL_FRAMEBUFFER, shadowmapFBO.id_fbo);
+         glViewport(0, 0, shadowmapSize, shadowmapSize);
+         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+      }
+
+      void bindTexture(int texture_slot) {
+         glActiveTexture(GL_TEXTURE0 + texture_slot);
+         glBindTexture(GL_TEXTURE_2D, shadowmapFBO.id_tex);
+      }
+
+      // s.program must be in use
+      inline void updateLightMatrixUniform(shader s, const char* uniform_name) {
+         glUniformMatrix4fv(s[uniform_name], 1, GL_FALSE, &(projMatrix * viewMatrix)[0][0]);
+      }
+};
+
+// represents a directional light
+class DirectionalProjector : public Projector {
+   protected:
+      glm::vec3 lightDirection;
+      box3 sceneBoundingBox;
+      
+      void update() {
+         viewMatrix = lookAt(lightDirection, glm::vec3(0.f), glm::vec3(0.,0.,1.f));
+         
+         // remove the translation component
+         viewMatrix[3][0] = 0.f;
+         viewMatrix[3][1] = 0.f;
+         viewMatrix[3][2] = 0.f;
+
+         // we transform the corners of the bounding box into the light's frame
+         box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
+         
+         // and that gives us the parameters of the light's view frustum
+         float farPlane = -std::min(aabb.max.z, aabb.min.z);
+         float nearPlane = -std::max(aabb.max.z, aabb.min.z);
+         projMatrix =  glm::ortho(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, nearPlane, farPlane);
+      }
+
+   public:
+      DirectionalProjector(box3 box, unsigned int shadowmap_size, glm::vec3 light_direction = glm::vec3(0.f,-1.f,0.f)) 
+         : Projector(shadowmap_size) {
+         sceneBoundingBox = box;
+         setDirection(light_direction);
+      }
+
+      void setDirection(glm::vec3 light_direction) {
+         lightDirection = glm::normalize(light_direction);
+         update();
+      }
+
+      glm::vec3 getDirection() {
+         return lightDirection;
+      }
+
+      box3 getBoundingBox() {
+         return sceneBoundingBox;
+      }
+
+      inline void updateLightDirectionUniform(shader s, const char* uniform_name) {
+         glUniform3f(s[uniform_name], lightDirection.x, lightDirection.y, lightDirection.z);
+      }
+};
+
+// represents a spotlight capable of casting shadows
+class SpotlightProjector : public Projector {
+   protected:
+      glm::vec3 lightPosition;
+      glm::vec3 lightDirection;
+      float lightAngle_out;
+
+      void update() {
+         viewMatrix[0] = glm::vec4(1.f, 0.f, 0.f, 0.f);
+         viewMatrix[1] = glm::vec4(glm::cross(-lightDirection, glm::vec3(1.f, 0.f, 0.f)), 0.f);
+         viewMatrix[2] = glm::vec4(-lightDirection, 0.f);
+         viewMatrix[3] = glm::vec4(lightPosition, 1.f);
+         viewMatrix = glm::inverse(viewMatrix);
+
+         float nearPlane = 0.001;
+         float farPlane = 0.07;
+         projMatrix = glm::perspective(2.0f*lightAngle_out, 1.0f, nearPlane, farPlane);
+      }
+
+   public:
+      SpotlightProjector(unsigned int shadowmap_size, glm::vec3 light_position, float angle_out, glm::vec3 direction)
+         : Projector(shadowmap_size) {
+         lightPosition = light_position;
+         lightDirection = direction;
+         lightAngle_out = angle_out;
+         update();
+      }
 };

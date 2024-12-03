@@ -11,16 +11,28 @@
 #include "../common/debugging.h"
 
 struct shader{
-        GLuint   vertex_shader, geometry_shader, compute_shader, fragment_shader, program;
+      GLuint   vertex_shader, geometry_shader, compute_shader, fragment_shader, program;
 
-        std::map<std::string,int> uni;
+      std::map<std::string,int> uni;
 
-        void bind(std::string name){
-            uni[name] = glGetUniformLocation(program, name.c_str());
-        }
+      void bind(std::string name){
+         uni[name] = glGetUniformLocation(program, name.c_str());
+      }
 
 		const bool has_uniform(std::string name) const  {
 			return (uni.find(name) != uni.end());
+		}
+
+		void printUniformNames() {
+			std::map<std::string, int>::iterator it;
+
+			for (it = uni.begin(); it != uni.end(); it++)
+			{
+				std::cout << it->first
+					<< " :\t"
+					<< it->second
+					<< std::endl;
+			}
 		}
 		
 		int operator[](std::string name){
@@ -100,6 +112,14 @@ private:
 			return true;
 		}
 
+		void removeComments(std::string& code) {
+			size_t begin;
+			while ((begin = code.find("/*")) != std::string::npos)
+				code.erase(begin, code.find("*/", begin) - begin);
+			while ((begin = code.find("//")) != std::string::npos)
+				code.erase(begin, code.find("\n", begin) - begin);
+		}
+
 		/* this function look for uniform variables and associates their locations
 		 to their name in the map "uni" so that you can call
 		 glUniform*(my_shader["uMyUniformName"],...)
@@ -119,8 +139,10 @@ private:
 		 */
 		void bind_uniform_variables(std::string code) {
 
-                        code.erase(std::remove(code.begin(), code.end(), '\r'), code.end());
-                        code.erase(std::remove(code.begin(), code.end(), '\n'), code.end());
+			removeComments(code);
+
+         code.erase(std::remove(code.begin(), code.end(), '\r'), code.end());
+         code.erase(std::remove(code.begin(), code.end(), '\n'), code.end());
 			code.erase(std::remove(code.begin(), code.end(), '\t'), code.end());
 			code.erase(std::remove(code.begin(), code.end(), '\b'), code.end());
 
@@ -148,7 +170,6 @@ private:
 				}
 			}
 		}
-
 };
 
  

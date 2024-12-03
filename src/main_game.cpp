@@ -30,6 +30,7 @@
 #include "camera_controls.h"
 #include "transformations.h"
 #include "projector.h"
+#include "lamps.h"
 
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -60,15 +61,28 @@ void printVec3 (glm::vec3 v) {
 int width = 1440;
 int height = 900;
 
-unsigned int shadowmapSize = 2048;
+#define COLOR_RED    glm::vec3(1.f,0.f,0.f)
+#define COLOR_GREEN  glm::vec3(0.f,1.f,0.f)
+#define COLOR_BLUE   glm::vec3(0.f,0.f,1.f)
+#define COLOR_BLACK  glm::vec3(0.f,0.f,0.f)
+#define COLOR_WHITE  glm::vec3(1.f,1.f,1.f)
+#define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
+
+// opening angles of the street lamps' beam
+#define LAMP_ANGLE_IN   glm::radians(15.0f)
+#define LAMP_ANGLE_OUT  glm::radians(50.0f)
+// determines the time of day the lamps should turn on/off
+#define LAMP_NIGHTTIME_THRESHOLD 0.15f
+
+#define SUN_SHADOWMAP_SIZE  2048u
+#define LAMP_SHADOWMAP_SIZE  512u
 
 // textures and shading
 typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
-   SHADING_NORMALMAP,         // 1
-   SHADING_MONOCHROME_FLAT,   // 2
-   SHADING_TEXTURED_PHONG,    // 3
-   SHADING_MONOCHROME_PHONG   // 4
+   SHADING_MONOCHROME_FLAT,   // 1
+   SHADING_TEXTURED_PHONG,    // 2
+   SHADING_MONOCHROME_PHONG   // 3
 } shadingMode_t;
 
 typedef enum textureSlot {
@@ -77,7 +91,8 @@ typedef enum textureSlot {
    TEXTURE_ROAD,
    TEXTURE_DIFFUSE,
    TEXTURE_NORMAL,
-   TEXTURE_SHADOWMAP
+   TEXTURE_SHADOWMAP_SUN,
+   TEXTURE_SHADOWMAP_LAMPS
 } textureSlot_t;
 
 texture texture_grass_diffuse, texture_track_diffuse;
@@ -117,13 +132,7 @@ void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox,
          glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
       }
       
-      if (obj[i].mater.normal_texture != -1) {
-         glActiveTexture(GL_TEXTURE0 + TEXTURE_NORMAL);
-         glBindTexture(GL_TEXTURE_2D, obj[i].mater.normal_texture);
-      }
-      
       glUniform1i(s["uColorImage"], TEXTURE_DIFFUSE);
-      glUniform1i(s["uNormalmapImage"], TEXTURE_NORMAL);
       glUniformMatrix4fv(s["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
       glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);   
       stack.pop();
@@ -149,8 +158,9 @@ unsigned int POVselected = 0; // will keep track of how many times the user has 
 bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
-bool lampState = true;
+bool lampState = false;
 bool drawShadows = true;
+bool sunState = true;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -203,6 +213,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
          case GLFW_KEY_L:
             lampState = !lampState;
             break;
+         
+         case GLFW_KEY_K:
+            sunState = !sunState;
+            break;
 
          case GLFW_KEY_Q:
             drawShadows = !drawShadows;
@@ -213,6 +227,13 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
+}
+
+void inline lampSunlightSwitch(glm::vec3 sunlight_direction) {
+   if (dot(normalize(sunlight_direction), glm::vec3(0.f, 1.f, 0.f)) <= LAMP_NIGHTTIME_THRESHOLD)
+      lampState = true;
+   else
+      lampState = false;
 }
 
 
@@ -228,9 +249,10 @@ void draw_frame() {
    glUseProgram(0);
 }
 
-void draw_sunDir(glm::vec3 sundir) {
+void draw_sunDirection(glm::vec3 sundir) {
    glUseProgram(shader_basic.program);
-   glColor3f(0, 0, 1);
+   glUniform3f(shader_basic["uColor"], 1.f, 1.f, 1.f);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
    glBegin(GL_LINES);
    glVertex3f(0, 0, 0);
    glVertex3f(sundir.x, sundir.y, sundir.z);
@@ -247,6 +269,9 @@ void draw_terrain(shader sh, matrix_stack stack) {
    glBindTexture(GL_TEXTURE_2D, texture_grass_diffuse.id);
    glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
    glUniform1i(sh["uColorImage"], TEXTURE_GRASS);
+   glUniform1f(sh["uShininess"], 25.f);
+   glUniform1f(sh["uDiffuse"], 0.9f);
+   glUniform1f(sh["uSpecular"], 0.1f);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_terrain().mode, r_terrain().count, r_terrain().itype, 0);
    glUseProgram(0);
@@ -261,7 +286,7 @@ void draw_track(shader sh, matrix_stack stack) {
 
    // we bump the track upwards to prevent it from falling under the terrain
    stack.push();
-   stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.21f, 0.f)));
+   stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.15f, 0.f)));
    
    glActiveTexture(GL_TEXTURE0 + TEXTURE_ROAD);
    glBindTexture(GL_TEXTURE_2D, texture_track_diffuse.id);
@@ -287,7 +312,10 @@ void draw_cars(shader sh, matrix_stack stack) {
       stack.mult(glm::scale(glm::mat4(1.), glm::vec3(3.5f)));
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f,1.f,0.f)));  // make it face the direction it's going
       
-      glUniform1i(sh["uMode"], SHADING_NORMALMAP);
+      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+      glUniform1f(sh["uShininess"], 75.f);
+      glUniform1f(sh["uDiffuse"], 0.7f);
+      glUniform1f(sh["uSpecular"], 0.7f);
       drawLoadedModel(stack, model_car, bbox_car, sh);
       stack.pop();
    }
@@ -307,8 +335,11 @@ void draw_cameramen(shader sh, matrix_stack stack) {
       stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f,0.25f,0.f)));
       stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f,1.f,0.f)));
       
-      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       glUniform1i(sh["uMode"], SHADING_MONOCHROME_PHONG);
+      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
+      glUniform1f(sh["uShininess"], 50.f);
+      glUniform1f(sh["uDiffuse"], 0.9f);
+      glUniform1f(sh["uSpecular"], 0.6f);
       
       drawLoadedModel(stack, model_camera, bbox_camera, sh);
       stack.pop();
@@ -319,28 +350,30 @@ void draw_cameramen(shader sh, matrix_stack stack) {
 renderable r_sphere;
 std::vector<glm::mat4> lampT;
 std::vector<glm::vec3> lampLightPos;
+void draw_lightBulbs(shader sh) {
+   glUseProgram(sh.program);
+   for (unsigned int i = 0; i < lampT.size(); ++i) {
+      r_sphere.bind();
+      glm::mat4 model = glm::translate(glm::mat4(1.f), lampLightPos[i]);
+                model = glm::scale(model, glm::vec3(0.00075f));
+      glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &model[0][0]);
+      glUniform3f(sh["uColor"], 1.f, 0.63f, 0.08f);
+      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glDrawElements(r_sphere().mode, r_sphere().count, r_sphere().itype, 0);
+   }
+   glUseProgram(0);
+}
 void draw_lamps(shader sh, matrix_stack stack) {
    glUseProgram(sh.program);
-   for (int i = 0; i < lampT.size(); i++) {
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1f(sh["uShininess"], 75.f);
+   glUniform1f(sh["uDiffuse"], 0.7f);
+   glUniform1f(sh["uSpecular"], 0.7f);
+   for (unsigned int i = 0; i < lampT.size(); ++i) {
       stack.push();
-
-      // draw the lamp itself
       stack.load(lampT[i]);
 
-      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
-      glUniform3f(sh["uColor"], 0.2f, 0.2f, 0.2f);
       drawLoadedModel(stack, model_lamp, bbox_lamp, sh);
-   
-      /*
-      // draw the light sphere on top
-      r_sphere.bind();
-      stack.load_identity();
-      stack.mult(glm::translate(glm::mat4(1.f), lampLightPos[i]));
-      stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(0.001f)));
-      glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-      glUniform3f(sh["uColor"], 1.f, 0.63f, 0.08f);
-      glDrawElements(r_sphere().mode, r_sphere().count, r_sphere().itype, 0);
-      */
       
       stack.pop();
    }
@@ -351,12 +384,15 @@ std::vector<glm::mat4> treeT;
 void draw_trees(shader sh, matrix_stack stack) {
    glUseProgram(sh.program);
    glDisable(GL_CULL_FACE);
+
+   glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1f(sh["uShininess"], 25.f);
+   glUniform1f(sh["uDiffuse"], 1.f);
+   glUniform1f(sh["uSpecular"], 0.1f);
    for (unsigned int i = 0; i < treeT.size(); i++) {
       stack.push();
       stack.load(treeT[i]);
       
-      glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
-      glUniform3f(sh["uColor"], 0.3f, 0.9f, 0.3f);
       drawLoadedModel(stack, model_tree, bbox_tree, sh);
       
       stack.pop();
@@ -377,44 +413,72 @@ void draw_debugTrees(matrix_stack stack) {
 
 shader shader_fsq;
 renderable r_quad;
-void draw_texture(GLint tex_id) {
+void draw_texture(GLint tex_id, unsigned int texture_slot) {
    GLint at;
    glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
    glUseProgram(shader_fsq.program);
 
-   glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
+   glActiveTexture(GL_TEXTURE0 + texture_slot);
    glBindTexture(GL_TEXTURE_2D, tex_id);
-   glUniform1i(shader_fsq["uTexture"], TEXTURE_SHADOWMAP);
+   glUniform1i(shader_fsq["uTexture"], texture_slot);
    r_quad.bind();
+   glDisable(GL_CULL_FACE);
    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
    
    glUseProgram(0);
    glActiveTexture(at);
 }
 
+renderable r_cube;
+// draws the frustum represented by the given projection matrix
+void draw_frustum(glm::mat4 projMatrix, glm::vec3 color) {
+   r_cube.bind();
+   glUseProgram(shader_basic.program);
+   glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::inverse(projMatrix)[0][0]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+}
+
+// draws a box3
+void draw_bbox(box3 bbox, glm::vec3 color) {
+   glm::mat4 T = glm::translate(glm::mat4(1.f), bbox.center());
+             T = glm::scale(T, glm::abs(bbox.max - bbox.min) / 2.f);
+   glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &T[0][0]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
+   glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+}
+
 
 void draw_scene(matrix_stack stack, bool depthOnly) {
    shader sh;
-   if (!depthOnly) {
-      draw_frame();
-      draw_sunDir(r.sunlight_direction());
-      sh = shader_world;
+   if (depthOnly) {
+      sh = shader_depth;
    }
    else {
-      sh = shader_depth;
+      //draw_frame();
+      //draw_sunDirection(r.sunlight_direction());
+      sh = shader_world;
    }
    
    // draw terrain and track
    if (depthOnly)
        glDisable(GL_CULL_FACE);   // terrain and track are not watertight
-   else
+   else {
        glEnable(GL_CULL_FACE);
+       glCullFace(GL_BACK);
+   }
 
-   glFrontFace(GL_CCW);
+   glFrontFace(GL_CW);
    draw_terrain(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
    draw_track(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
+
+   // the following models have opposite polygon handedness
+   glFrontFace(GL_CCW);
+   draw_cars(sh, stack);
 
    // in the depth pass, cull the front face from the following watertight models
    if (depthOnly) {
@@ -422,18 +486,14 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
       glCullFace(GL_FRONT);
    }
 
-   // the following models have opposite polygon handedness
-   glFrontFace(GL_CW);
-   draw_cars(sh, stack);
-    check_gl_errors(__LINE__, __FILE__);
+    //check_gl_errors(__LINE__, __FILE__);
    draw_cameramen(sh, stack);
-    check_gl_errors(__LINE__, __FILE__);
+    //check_gl_errors(__LINE__, __FILE__);
    draw_trees(sh, stack);
-    check_gl_errors(__LINE__, __FILE__);
+    //check_gl_errors(__LINE__, __FILE__);
    draw_lamps(sh, stack);
+   //draw_lightBulbs(sh);
     check_gl_errors(__LINE__, __FILE__);
-   
-   //draw_debugTrees(stack);
 }
 
 
@@ -472,12 +532,10 @@ int main(int argc, char** argv) {
 
 
    // begin creating the world
-   
    fram = shape_maker::frame();
    r_sphere = shape_maker::sphere(2);
    r_quad = shape_maker::quad();
    
-   renderable r_cube;
    shape s_cube;
    shape_maker::cube(s_cube);
    s_cube.compute_edges();
@@ -542,35 +600,46 @@ int main(int argc, char** argv) {
    stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(scale)));
    stack.mult(glm::translate(glm::mat4(1.f), -center));
 
-   // initialize sunlight direction
+   // initialize scene
    r.start(11,0,0,600);
    r.update();
-   glUseProgram(shader_world.program);
-   glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
    
-   // we transform the scene's bounding box in world coordinates to pass it to the Sun Projector
+   // transform the scene's bounding box in world coordinates to pass it to the Sun Projector
    box3 bbox_scene = r.bbox();
    bbox_scene.min = glm::vec3(stack.m() * glm::vec4(bbox_scene.min, 1.0));
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
-   Projector sunProjector(bbox_scene, shadowmapSize, -r.sunlight_direction());
+   DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, r.sunlight_direction());
    
-   glUseProgram(shader_depth.program);
-   glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
-   
+   // initialize the sun's uniforms
    glUseProgram(shader_world.program);
-   glUniform1i(shader_world["uShadowMapSize"], shadowmapSize);
+   sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
+   sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
+   glUniform1i(shader_world["uSunShadowmap"], TEXTURE_SHADOWMAP_SUN);
+   glUniform1i(shader_world["uSunShadowmapSize"], SUN_SHADOWMAP_SIZE);
    glUseProgram(0);
    
 
-   // initialize the lamps' and their lights' positions
+   // initialize the lamps and their lights
    lampT = lampTransform(r.t(), r.lamps(), scale, center);
    lampLightPos = lampLightPositions(lampT);
+   LampGroup lamps(lampLightPos, LAMP_ANGLE_OUT, LAMP_SHADOWMAP_SIZE, TEXTURE_SHADOWMAP_LAMPS);
+   unsigned int numActiveLamps = 3;
+   lamps.toggle(10);
+   lamps.toggle(11);
+   lamps.toggle(14);
+
    glUseProgram(shader_world.program);
-   glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lampLightPos.size(), &lampLightPos[0][0]);
+   glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
+   glUniform1f(shader_world["uLampAngleOut"], glm::cos(LAMP_ANGLE_OUT));
+   glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
+   glUniform3fv(shader_world["uLamps"], lamps.getSize(), &lamps.getPositions()[0][0]);
+   glUniformMatrix4fv(shader_world["uLampMatrix"], lamps.getSize(), GL_FALSE, &lamps.getLightMatrices()[0][0][0]);
+   glUniform1iv(shader_world["uLampShadowmaps"], lamps.getSize(), &lamps.getTextureSlots()[0]);
+   glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);
    glUseProgram(0);
    
-   // initialize the trees' positions
+   // initialize the trees
    treeT = treeTransform(r.trees(), scale, center);
    
 
@@ -580,71 +649,64 @@ int main(int argc, char** argv) {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       check_gl_errors(__LINE__, __FILE__);
       
-      if (timeStep)
+      if (timeStep) {
          r.update();
+         lampSunlightSwitch(r.sunlight_direction());
+      }
       
-      // ruota il sole per farlo allineare con r.sunlight_direction()
-      sunProjector.setDirection(-r.sunlight_direction());
-      glUseProgram(shader_depth.program);
-      glUniformMatrix4fv(shader_depth["uLightMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
+      // update the sun's uniform in the depth and world shaders
+      sunProjector.setDirection(r.sunlight_direction());
+      
+         glUseProgram(shader_depth.program);
+         sunProjector.updateLightMatrixUniform(shader_depth, "uLightMatrix");
+         sunProjector.bindFramebuffer();
 
+         glUseProgram(shader_world.program);
+         sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
+         sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
+         glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
+         glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       
-      // ci prepariamo a disegnare il buffer per la shadowmap
-      glBindFramebuffer(GL_FRAMEBUFFER, sunProjector.getFrameBufferID());
-      glViewport(0, 0, shadowmapSize, shadowmapSize);
-      glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-      
-      // primo passaggio:
-      // calcoliamo solo il depth buffer
-      draw_scene(stack, true);
-      
-      
-      // bind the shadow map to the shader and update the sun's uniforms
-      glUseProgram(shader_world.program);
-      glActiveTexture(GL_TEXTURE0 + TEXTURE_SHADOWMAP);
-      glBindTexture(GL_TEXTURE_2D, sunProjector.getTextureID());
-      glUniform1i(shader_world["uShadowMap"], TEXTURE_SHADOWMAP);
-      glUniform3f(shader_world["uSun"], r.sunlight_direction().x, r.sunlight_direction().y, r.sunlight_direction().z);
-      glUniformMatrix4fv(shader_world["uSunMatrix"], 1, GL_FALSE, &sunProjector.lightMatrix()[0][0]);
-      glUniform1f(shader_world["uLampState"], (lampState)?(1.0):(0.0));
-      glUseProgram(0);
-      
-      
-      // ci prepariamo a disegnare il buffer che andrà sullo schermo
+      // draw the sun's shadowmap
+      if (sunState) {
+         sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
+         draw_scene(stack, true);
+      }
+
+      // draw the lamps' shadowmaps
+      if (lampState) {
+         for (unsigned int i = 0; i < numActiveLamps; ++i) {
+            glUseProgram(shader_depth.program);
+            lamps.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
+            lamps.bindFramebuffer(i);
+            lamps.bindTexture(i);
+            draw_scene(stack, true);
+         }
+         glUseProgram(0);
+      }
+
+      // draw the screen buffer
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
       glViewport(0, 0, width, height);
-      
-      // secondo passaggio:
-      // disegnamo tutta la scena
       draw_scene(stack, false);
       
+
       if (debugView) {
-         // draw the light frustum
-         r_cube.bind();
-         stack.push();
-         stack.load(inverse(sunProjector.lightMatrix()));   // draw a cube around the sun's clip space
-         glUseProgram(shader_basic.program);
-         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 1.0);
-         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-         stack.pop();
+         if (lampState)
+            for (unsigned int i = 0; i < numActiveLamps; ++i)
+               draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
+
+         draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
+         draw_bbox(bbox_scene, COLOR_BLACK);
+         draw_sunDirection(r.sunlight_direction());
          
-         // draw the world's bounding box
-         stack.push();
-         stack.load_identity();
-         stack.mult(glm::translate(glm::mat4(1.f), bbox_scene.center()));
-         stack.mult(glm::scale(glm::mat4(1.f), glm::abs(bbox_scene.max-bbox_scene.min)/2.f));
-         glUniform3f(shader_basic["uColor"], 0.0, 0.0, 0.0);
-         glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
-         glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
-         stack.pop();
-         
-         // show the shadow map 
+         // show the shadow map
          glViewport(0, 0, 200, 200);
          glDisable(GL_DEPTH_TEST);
-         draw_texture(sunProjector.getTextureID());
+         if (lampState)
+            draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
+         else
+            draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
          glEnable(GL_DEPTH_TEST);
          glViewport(0, 0, width, height);
       }
@@ -664,9 +726,9 @@ int main(int argc, char** argv) {
          stack.push();
          stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0.f))); // we bump the cameraman's POV upwards a little bit
          // the cameraman's view matrix is the inverse of its frame, but first we scale it back up so that the projection matrix isn't affected
-         viewMatrix = glm::inverse( glm::scale(stack.m() * r.cameramen()[currentPOV-1].frame, glm::vec3(1./scale)) );
+         viewMatrix = glm::inverse( glm::scale(stack.m() * r.cameramen()[currentPOV-1].frame, glm::vec3(1.f/scale)) );
          draw_cameraman[currentPOV-1] = false;
-         if (currentPOV>1)
+         if (currentPOV > 1)
             draw_cameraman[currentPOV-2] = true;
          stack.pop();
       }
@@ -677,13 +739,12 @@ int main(int argc, char** argv) {
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
       
-      /* Swap front and back buffers */
       glfwSwapBuffers(window);
-
-      /* Poll for and process events */
       glfwPollEvents();
    }
+
    glUseProgram(0);
    glfwTerminate();
+
    return 0;
 }
