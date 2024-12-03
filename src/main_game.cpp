@@ -350,15 +350,14 @@ void draw_cameramen(shader sh, matrix_stack stack) {
 renderable r_sphere;
 std::vector<glm::mat4> lampT;
 std::vector<glm::vec3> lampLightPos;
-void draw_lightBulbs(shader sh) {
-   glUseProgram(sh.program);
+void draw_lightBulbs() {
+   glUseProgram(shader_basic.program);
    for (unsigned int i = 0; i < lampT.size(); ++i) {
       r_sphere.bind();
       glm::mat4 model = glm::translate(glm::mat4(1.f), lampLightPos[i]);
                 model = glm::scale(model, glm::vec3(0.00075f));
-      glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &model[0][0]);
-      glUniform3f(sh["uColor"], 1.f, 0.63f, 0.08f);
-      glUniform1i(sh["uMode"], SHADING_MONOCHROME_FLAT);
+      glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &model[0][0]);
+      glUniform3f(shader_basic["uColor"], 1.f, 0.82f, 0.70f);
       glDrawElements(r_sphere().mode, r_sphere().count, r_sphere().itype, 0);
    }
    glUseProgram(0);
@@ -491,7 +490,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    //draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
    //draw_lamps(sh, stack);
-   //draw_lightBulbs(sh);
+   //draw_lightBulbs();
     check_gl_errors(__LINE__, __FILE__);
 }
 
