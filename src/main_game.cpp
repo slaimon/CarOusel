@@ -29,6 +29,7 @@
 #include "carousel_augment.h"
 #include "camera_controls.h"
 #include "transformations.h"
+#include "headlights.h"
 #include "projector.h"
 #include "lamps.h"
 
@@ -648,9 +649,7 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   glm::mat4 headlight1View = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-   glm::mat4 headlight2View = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-   glm::mat4 headlightProj = glm::perspective(glm::radians(10.f), 1.f, 0.001f, 1.f);
+   Headlights hl(glm::radians(10.f), center, scale);
 
 
    glEnable(GL_DEPTH_TEST);
@@ -669,10 +668,7 @@ int main(int argc, char** argv) {
       }
 
       // update the headlights' view matrices
-      glm::mat4 F1 = glm::translate(r.cars()[0].frame, glm::vec3( 0.45f, 0.5f, -1.25f));
-      glm::mat4 F2 = glm::translate(r.cars()[0].frame, glm::vec3(-0.45f, 0.5f, -1.25f));
-      headlight1View = glm::inverse(glm::scale(stack.m() * F1, glm::vec3(1.f / scale)));
-      headlight2View = glm::inverse(glm::scale(stack.m() * F2, glm::vec3(1.f / scale)));
+      hl.setCarFrame(r.cars()[0].frame);
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
@@ -715,9 +711,8 @@ int main(int argc, char** argv) {
                draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
-         draw_frustum(headlightProj * headlight1View, COLOR_RED);
-         draw_frustum(headlightProj * headlight2View, COLOR_RED);
-         draw_frame(stack.m() * r.cars()[0].frame);
+         draw_frustum(hl.getMatrix(0), COLOR_RED);
+         draw_frustum(hl.getMatrix(1), COLOR_RED);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
 
