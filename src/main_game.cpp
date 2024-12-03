@@ -640,6 +640,10 @@ int main(int argc, char** argv) {
    // initialize the trees
    treeT = treeTransform(r.trees(), scale, center);
    
+   // initialize the headlights
+   glm::mat4 headlightView = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+   glm::mat4 headlightProj = glm::perspective(glm::radians(10.f), 1.f, 0.001f, 1.f);
+
 
    glEnable(GL_DEPTH_TEST);
    while (!glfwWindowShouldClose(window)) {
@@ -699,6 +703,7 @@ int main(int argc, char** argv) {
                draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
+         draw_frustum(headlightProj * headlightView, COLOR_RED);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
 
@@ -742,6 +747,9 @@ int main(int argc, char** argv) {
       glUniform1f(shader_world["uDrawShadows"], (drawShadows)?(1.0):(0.0));
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
+
+      glm::mat4 F = stack.m() * r.cars()[0].frame;
+      headlightView = glm::inverse(glm::scale(F, glm::vec3(1.f / scale)));
       
       glfwSwapBuffers(window);
       glfwPollEvents();
