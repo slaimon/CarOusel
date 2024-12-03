@@ -133,13 +133,7 @@ void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox,
          glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
       }
       
-      if (obj[i].mater.normal_texture != -1) {
-         glActiveTexture(GL_TEXTURE0 + TEXTURE_NORMAL);
-         glBindTexture(GL_TEXTURE_2D, obj[i].mater.normal_texture);
-      }
-      
       glUniform1i(s["uColorImage"], TEXTURE_DIFFUSE);
-      glUniform1i(s["uNormalmapImage"], TEXTURE_NORMAL);
       glUniformMatrix4fv(s["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
       glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);   
       stack.pop();
@@ -640,7 +634,7 @@ int main(int argc, char** argv) {
    glUniform1f(shader_world["uLampAngleIn"], glm::cos(LAMP_ANGLE_IN));
    glUniform1f(shader_world["uLampAngleOut"], glm::cos(LAMP_ANGLE_OUT));
    glUniform3f(shader_world["uLampDirection"], 0.f, -1.f, 0.f);
-   glUniform3fv(glGetUniformLocation(shader_world.program, "uLamps"), lamps.getSize(), &lamps.getPositions()[0][0]);
+   glUniform3fv(shader_world["uLamps"], lamps.getSize(), &lamps.getPositions()[0][0]);
    glUniformMatrix4fv(shader_world["uLampMatrix"], lamps.getSize(), GL_FALSE, &lamps.getLightMatrices()[0][0][0]);
    glUniform1iv(shader_world["uLampShadowmaps"], lamps.getSize(), &lamps.getTextureSlots()[0]);
    glUniform1i(shader_world["uLampShadowmapSize"], LAMP_SHADOWMAP_SIZE);

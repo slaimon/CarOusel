@@ -29,8 +29,6 @@ out vec4 vPosLampLS[NUM_LAMPS];
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uSunDirection;
 uniform float uLampState;
-uniform uint uNumActiveLamps;
-uniform uint uActiveLamps[NUM_LAMPS];
 
 // light matrices
 uniform mat4 uLampMatrix[NUM_LAMPS];
@@ -40,9 +38,9 @@ uniform mat4 uSunMatrix;
 uniform int uMode;
 
 // transformation matrices
-uniform mat4 uProj;
 uniform mat4 uView;
 uniform mat4 uModel;
+uniform mat4 uProj;
 
 
 vec3 computeLightPosWS (vec4 vPosLS) {
