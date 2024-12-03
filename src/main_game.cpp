@@ -74,6 +74,10 @@ int height = 900;
 // determines the time of day the lamps should turn on/off
 #define LAMP_NIGHTTIME_THRESHOLD 0.15f
 
+// how many cars should be displayed
+#define CARS_NUM 1
+
+// shadowmap sizes
 #define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE  512u
 
@@ -498,8 +502,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
 int main(int argc, char** argv) {
    carousel_loader::load((BASE_DIR + "src/small_test.svg").c_str(), (BASE_DIR + "src/terrain_256.png").c_str(), r);
    
-   //add 10 cars
-   for (int i = 0; i < 10; ++i)      
+   for (int i = 0; i < CARS_NUM; ++i)      
       r.add_car();
 
    GLFWwindow* window;
