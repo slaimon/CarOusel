@@ -640,7 +640,8 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   glm::mat4 headlightView = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+   glm::mat4 headlight1View = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+   glm::mat4 headlight2View = glm::lookAt(glm::vec3(0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
    glm::mat4 headlightProj = glm::perspective(glm::radians(10.f), 1.f, 0.001f, 1.f);
 
 
@@ -658,6 +659,12 @@ int main(int argc, char** argv) {
          r.update();
          lampSunlightSwitch(r.sunlight_direction());
       }
+
+      // update the headlights' view matrices
+      glm::mat4 F1 = glm::translate(stack.m() * r.cars()[0].frame, glm::vec3(0.45f, 0.5f, -1.25f));
+      glm::mat4 F2 = glm::translate(stack.m() * r.cars()[0].frame, glm::vec3(-0.45f, 0.5f, -1.25f));
+      headlight1View = glm::inverse(glm::scale(F1, glm::vec3(1.f / scale)));
+      headlight2View = glm::inverse(glm::scale(F2, glm::vec3(1.f / scale)));
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
@@ -700,7 +707,8 @@ int main(int argc, char** argv) {
                draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
-         draw_frustum(headlightProj * headlightView, COLOR_RED);
+         draw_frustum(headlightProj * headlight1View, COLOR_RED);
+         draw_frustum(headlightProj * headlight2View, COLOR_RED);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
 
@@ -746,9 +754,6 @@ int main(int argc, char** argv) {
       glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
-
-      glm::mat4 F = stack.m() * r.cars()[0].frame;
-      headlightView = glm::inverse(glm::scale(F, glm::vec3(1.f / scale)));
       
       glfwSwapBuffers(window);
       glfwPollEvents();
