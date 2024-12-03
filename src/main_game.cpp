@@ -486,11 +486,11 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
 
     //check_gl_errors(__LINE__, __FILE__);
-   draw_cameramen(sh, stack);
+   //draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   draw_trees(sh, stack);
+   //draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   draw_lamps(sh, stack);
+   //draw_lamps(sh, stack);
    //draw_lightBulbs(sh);
     check_gl_errors(__LINE__, __FILE__);
 }
