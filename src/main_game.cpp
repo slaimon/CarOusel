@@ -110,7 +110,6 @@ void load_models() {
    gltf_loader gltfLoader;
    gltfLoader.load_to_renderable(models_path + "car1.glb", model_car, bbox_car);
    gltfLoader.load_to_renderable(models_path + "camera4.glb", model_camera, bbox_camera);
-   std::cout << "camera model lenght: " << model_camera.size() << std::endl;
    gltfLoader.load_to_renderable(models_path + "lamp2.glb", model_lamp, bbox_lamp);
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
