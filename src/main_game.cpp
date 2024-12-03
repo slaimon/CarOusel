@@ -160,10 +160,10 @@ void updateDelta() {
 CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
 unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
 bool fineMovement = false;
-bool debugView = false;
+bool debugView = true;
 bool timeStep = true;
 bool lampState = false;
-bool drawShadows = true;
+bool drawShadows = false;
 bool sunState = true;
 float playerMinHeight = 0.01;
 
@@ -670,8 +670,6 @@ int main(int argc, char** argv) {
          glUseProgram(shader_world.program);
          sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
          sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
-         glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
-         glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       
       // draw the sun's shadowmap
       if (sunState && drawShadows) {
@@ -745,6 +743,8 @@ int main(int argc, char** argv) {
       glUseProgram(shader_world.program);  
       glUniformMatrix4fv(shader_world["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
       glUniform1f(shader_world["uDrawShadows"], (drawShadows)?(1.0):(0.0));
+      glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
+      glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
 
