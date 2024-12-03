@@ -236,9 +236,9 @@ void inline lampSunlightSwitch(glm::vec3 sunlight_direction) {
 race r;
 shader shader_basic, shader_world, shader_depth;
 renderable fram;
-void draw_frame() {
+void draw_frame(glm::mat4 F) {
    glUseProgram(shader_basic.program);
-   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
+   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &F[0][0]);
    glUniform3f(shader_basic["uColor"], -1.f, 0.6f, 0.f);
    fram.bind();
    glDrawArrays(GL_LINES, 0, 6);
@@ -453,8 +453,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
       sh = shader_depth;
    }
    else {
-      //draw_frame();
-      //draw_sunDirection(r.sunlight_direction());
+      //draw_frame(glm::mat4(1.f));
       sh = shader_world;
    }
    
