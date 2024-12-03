@@ -51,9 +51,6 @@ uniform sampler2D uNormalmapImage;
 uniform sampler2D uShadowMap;
 uniform int uShadowMapSize;
 
-float unpack(vec4 v) {
-   return v.x + v.y / (256.0) + v.z / (256.0*256.0) + v.w / (256.0*256.0*256.0);
-}
 
 float sunIntensity() {
    return max(0.0, dot(uSun, vec3(0.0,1.0,0.0)));
@@ -93,7 +90,7 @@ float isLit(vec3 L, vec3 N) {
 
    float bias = clamp(BIAS_A*tan(acos(dot(N,L))), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (vPosLS/vPosLS.w)*0.5+0.5;
-   float depth = unpack(texture(uShadowMap,pLS.xy));
+   float depth = texture(uShadowMap,pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
@@ -111,7 +108,7 @@ float isLitPCF(vec3 L, vec3 N) {
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth = unpack(texture(uShadowMap, pLS.xy + vec2(-2.0+x,-2.0+y)/uShadowMapSize));
+         storedDepth =  texture(uShadowMap, pLS.xy + vec2(-2.0+x,-2.0+y)/uShadowMapSize).x;
          if(storedDepth + BIAS_PCF < pLS.z )    
             lit  -= 1.0/25.0;
       }
