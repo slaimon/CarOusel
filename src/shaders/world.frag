@@ -69,6 +69,10 @@ uniform float uDiffuse;
 uniform float uSpecular;
 uniform sampler2D uColorImage;
 
+float unpack(vec4 v) {
+   return v.x + v.y / (256.0) + v.z / (256.0*256.0) + v.w / (256.0*256.0*256.0);
+}
+
 float tanacos(float x) {
    return sqrt(1-x*x)/x;
 }
@@ -118,7 +122,7 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    vec4 pLS = (posLS/posLS.w)*0.5+0.5;
    if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
       return 0.0;
-   float depth = texture(shadowmap,pLS.xy).x;
+   float depth = unpack(texture(shadowmap,pLS.xy));
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
@@ -136,7 +140,7 @@ float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSiz
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize).x;
+         storedDepth =  unpack(texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize));
          if(storedDepth + bias < pLS.z )    
             lit  -= 1.0/25.0;
       }
