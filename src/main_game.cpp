@@ -431,22 +431,30 @@ void draw_texture(GLint tex_id, unsigned int texture_slot) {
 renderable r_cube;
 // draws the frustum represented by the given projection matrix
 void draw_frustum(glm::mat4 projMatrix, glm::vec3 color) {
-   r_cube.bind();
    glUseProgram(shader_basic.program);
+   
+   r_cube.bind();
    glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &glm::inverse(projMatrix)[0][0]);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
    glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+
+   glUseProgram(0);
 }
 
 // draws a box3
 void draw_bbox(box3 bbox, glm::vec3 color) {
+   glUseProgram(shader_basic.program);
+
+   r_cube.bind();
    glm::mat4 T = glm::translate(glm::mat4(1.f), bbox.center());
              T = glm::scale(T, glm::abs(bbox.max - bbox.min) / 2.f);
    glUniform3f(shader_basic["uColor"], color.r, color.g, color.b);
    glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &T[0][0]);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_cube.elements[1].ind);
    glDrawElements(r_cube.elements[1].mode, r_cube.elements[1].count, r_cube.elements[1].itype, 0);
+
+   glUseProgram(0);
 }
 
 
@@ -661,10 +669,10 @@ int main(int argc, char** argv) {
       }
 
       // update the headlights' view matrices
-      glm::mat4 F1 = glm::translate(stack.m() * r.cars()[0].frame, glm::vec3(0.45f, 0.5f, -1.25f));
-      glm::mat4 F2 = glm::translate(stack.m() * r.cars()[0].frame, glm::vec3(-0.45f, 0.5f, -1.25f));
-      headlight1View = glm::inverse(glm::scale(F1, glm::vec3(1.f / scale)));
-      headlight2View = glm::inverse(glm::scale(F2, glm::vec3(1.f / scale)));
+      glm::mat4 F1 = glm::translate(r.cars()[0].frame, glm::vec3( 0.45f, 0.5f, -1.25f));
+      glm::mat4 F2 = glm::translate(r.cars()[0].frame, glm::vec3(-0.45f, 0.5f, -1.25f));
+      headlight1View = glm::inverse(glm::scale(stack.m() * F1, glm::vec3(1.f / scale)));
+      headlight2View = glm::inverse(glm::scale(stack.m() * F2, glm::vec3(1.f / scale)));
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
@@ -709,6 +717,7 @@ int main(int argc, char** argv) {
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_frustum(headlightProj * headlight1View, COLOR_RED);
          draw_frustum(headlightProj * headlight2View, COLOR_RED);
+         draw_frame(stack.m() * r.cars()[0].frame);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
 
