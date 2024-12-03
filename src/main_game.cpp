@@ -407,12 +407,10 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    // draw terrain and track
    if (depthOnly)
        glDisable(GL_CULL_FACE);   // terrain and track are not watertight
-   else {
+   else
        glEnable(GL_CULL_FACE);
-       glCullFace(GL_BACK);
-   }
 
-   glFrontFace(GL_CW);
+   glFrontFace(GL_CCW);
    draw_terrain(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
    draw_track(sh, stack);
@@ -425,7 +423,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
 
    // the following models have opposite polygon handedness
-   glFrontFace(GL_CCW);
+   glFrontFace(GL_CW);
    draw_cars(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
    draw_cameramen(sh, stack);
