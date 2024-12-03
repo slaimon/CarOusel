@@ -668,13 +668,13 @@ int main(int argc, char** argv) {
          glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
       
       // draw the sun's shadowmap
-      if (sunState) {
+      if (sunState && drawShadows) {
          sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
          draw_scene(stack, true);
       }
 
       // draw the lamps' shadowmaps
-      if (lampState) {
+      if (lampState && drawShadows) {
          for (unsigned int i = 0; i < numActiveLamps; ++i) {
             glUseProgram(shader_depth.program);
             lamps.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
@@ -699,16 +699,18 @@ int main(int argc, char** argv) {
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
-         
+
          // show the shadow map
-         glViewport(0, 0, 200, 200);
-         glDisable(GL_DEPTH_TEST);
-         if (lampState)
-            draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
-         else
-            draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
-         glEnable(GL_DEPTH_TEST);
-         glViewport(0, 0, width, height);
+         if (drawShadows) {
+            glViewport(0, 0, 200, 200);
+            glDisable(GL_DEPTH_TEST);
+            if (lampState)
+               draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
+            else
+               draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
+            glEnable(GL_DEPTH_TEST);
+            glViewport(0, 0, width, height);
+         }
       }
 
       
