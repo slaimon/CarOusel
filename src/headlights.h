@@ -7,8 +7,6 @@ class Headlights {
    protected:
       glm::mat4 viewMatrix[2];
       glm::mat4 projMatrix;
-      glm::vec3 carFrameOrigin;
-      float carFrameScale;
       glm::mat4 carToWorld;
       glm::mat4 headlightTransform[2];
 
@@ -16,19 +14,17 @@ class Headlights {
       Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale) {
          viewMatrix[0] = glm::mat4(1.f);
          viewMatrix[1] = glm::mat4(1.f);
-         projMatrix = glm::perspective(opening_angle, 1.f, 0.001f, 1.f);
+         projMatrix = glm::perspective(opening_angle, 1.f, 0.001f / car_frame_scale, 1.f / car_frame_scale);
 
-         carFrameOrigin = car_frame_origin;
-         carFrameScale = car_frame_scale;
-         carToWorld = glm::translate(glm::scale(glm::mat4(1.f), glm::vec3(carFrameScale)), -carFrameOrigin);
+         carToWorld = glm::translate(glm::scale(glm::mat4(1.f), glm::vec3(car_frame_scale)), -car_frame_origin);
          headlightTransform[0] = glm::translate(glm::mat4(1.f), glm::vec3( 0.45f, 0.5f, -1.25f));
          headlightTransform[1] = glm::translate(glm::mat4(1.f), glm::vec3(-0.45f, 0.5f, -1.25f));
       }
 
       void setCarFrame(glm::mat4 F) {
          glm::mat4 M = carToWorld * F;
-         viewMatrix[0] = glm::inverse(glm::scale(M * headlightTransform[0], glm::vec3(1.f / carFrameScale)));
-         viewMatrix[1] = glm::inverse(glm::scale(M * headlightTransform[1], glm::vec3(1.f / carFrameScale)));
+         viewMatrix[0] = glm::inverse(M * headlightTransform[0]);
+         viewMatrix[1] = glm::inverse(M * headlightTransform[1]);
       }
 
       glm::mat4 getMatrix(int i) {
