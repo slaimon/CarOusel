@@ -12,9 +12,9 @@ out vec4 color;
 #define NUM_ACTIVE_LAMPS   3
 
 // positional lights attenuation coefficients
-#define ATTENUATION_C1  0.01
-#define ATTENUATION_C2  1.0
-#define ATTENUATION_C3  20.0
+#define ATTENUATION_C1  1.0
+#define ATTENUATION_C2  0.0
+#define ATTENUATION_C3  0.005
 
 // spotlight parameters
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
@@ -116,6 +116,10 @@ float attenuation(vec3 lightPos, vec3 surfacePos) {
    return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
 }
 
+float attenuation(float d) {
+   return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
+}
+
 float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    if (uDrawShadows == 0.0)
       return 1.0;
@@ -134,10 +138,10 @@ float isLitByCar(int i) {
        return 0.0;
 	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
 	float d = length(texcoords);
+    if (d > 1.0)
+      return 0.0;
 	if (d <= HEADLIGHT_SPREAD)
 	   return 1.0;
-	if (d > 1.0)
-	   return 0.0;
 	else
 	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
 }
