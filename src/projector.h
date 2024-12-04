@@ -58,16 +58,25 @@ class Projector {
 class HeadlightProjector : public Projector {
    protected:
       glm::mat4 headlightTransform;
+      glm::vec3 headlightPosition;
 
    public:
       HeadlightProjector(unsigned int shadowmap_size, glm::mat4 headlight_transform, glm::mat4 proj_matrix)
          : Projector(shadowmap_size) {
          headlightTransform = headlight_transform;
          projMatrix = proj_matrix;
+         headlightPosition = glm::vec3(0.f);
       }
 
       void setCarTransform(glm::mat4 car_transform) {
+         glm::mat4 M = car_transform * headlightTransform;
+         headlightPosition = glm::vec3(M[3]);
+
          viewMatrix = glm::inverse(car_transform * headlightTransform);
+      }
+
+      glm::vec3 getPosition() {
+         return headlightPosition;
       }
 };
 

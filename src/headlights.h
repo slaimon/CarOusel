@@ -8,6 +8,7 @@
 class Headlights {
    protected:
       glm::mat4 lightMatrix[2];
+      glm::vec3 position[2];
       glm::mat4 projMatrix;
       glm::mat4 carToWorld;
       std::vector<HeadlightProjector> projector;
@@ -57,6 +58,12 @@ class Headlights {
          lightMatrix[0] = projector[0].lightMatrix();
          lightMatrix[1] = projector[1].lightMatrix();
          glUniformMatrix4fv(s[uniform_name], 2, GL_FALSE, &lightMatrix[0][0][0]);
+      }
+
+      // s.program must be in use
+      void updatePositionUniformArray(shader s, const char* uniform_name) {
+         position[0] = projector[0].getPosition();
+         position[1] = projector[1].getPosition();
       }
 
       int getTextureID(int i) {
