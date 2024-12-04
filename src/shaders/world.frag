@@ -228,10 +228,11 @@ void main(void) {
    }
    
    float headlightintensity = 0.0;
-   for (int i = 0; i < 2*NUM_CARS; ++i) {
+   //for (int i = 0; i < 2*NUM_CARS; ++i) {
+   int i = 0;
       headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headlightIntensity(i) *
 	                        isLit(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightProjWS[i], uHeadlightShadowmap[i]);
-   }
+   //}
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);

@@ -657,7 +657,7 @@ int main(int argc, char** argv) {
       
       if (timeStep) {
          r.update();
-         lampSunlightSwitch(r.sunlight_direction());
+         //lampSunlightSwitch(r.sunlight_direction());
       }
 
       // update the headlights' view matrices
