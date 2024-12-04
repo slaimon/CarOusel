@@ -75,6 +75,8 @@ int height = 900;
 // determines the time of day the lamps should turn on/off
 #define LAMP_NIGHTTIME_THRESHOLD 0.15f
 
+// opening angle of the headlights' beam
+#define HEADLIGHT_ANGLE  glm::radians(45.f)
 // how many cars should be displayed
 #define CARS_NUM 1
 
@@ -650,7 +652,7 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   Headlights headlights(glm::radians(45.f), center, scale, HEADLIGHT_SHADOWMAP_SIZE);
+   Headlights headlights(HEADLIGHT_ANGLE, center, scale, HEADLIGHT_SHADOWMAP_SIZE);
 
 
    glEnable(GL_DEPTH_TEST);
