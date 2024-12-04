@@ -9,6 +9,9 @@ layout (location = 4) in vec2 aTexCoord;
 #define NUM_LAMPS         19
 #define NUM_ACTIVE_LAMPS   3
 
+// headlights parameters
+#define NUM_CARS     1
+
 
 /*   ------   OUTPUTS   ------   */
 
@@ -21,7 +24,7 @@ out vec2 vTexCoord;
 out vec3 vSunWS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
-out vec4 vPosHeadlightProjWS;
+out vec4 vPosHeadlightProjWS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
@@ -34,7 +37,7 @@ uniform float uLampState;
 // light matrices
 uniform mat4 uLampMatrix[NUM_LAMPS];
 uniform mat4 uSunMatrix;
-uniform mat4 uHeadlightMatrix;
+uniform mat4 uHeadlightMatrix[2*NUM_CARS];
 
 // render mode
 uniform int uMode;
@@ -77,7 +80,9 @@ void main(void) {
    vSunWS = computeLightPosWS(vPosSunLS);
    
    // projective texturing
-   vPosHeadlightProjWS = uHeadlightMatrix * uModel * vec4(aPosition, 1.0);
+   for (int i = 0; i < 2*NUM_CARS; ++i) {
+      vPosHeadlightProjWS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+   }
 
    // vertex computations
    vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;

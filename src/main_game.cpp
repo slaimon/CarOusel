@@ -670,7 +670,7 @@ int main(int argc, char** argv) {
       // update the headlights' view matrices
       headlights.setCarFrame(r.cars()[0].frame);
          glUseProgram(shader_world.program);
-         glUniformMatrix4fv(shader_world["uHeadlightMatrix"], 1, GL_FALSE, &headlights.getMatrix(0)[0][0]);
+         headlights.updateLightMatrixUniform(shader_world, "uHeadlightMatrix");
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());

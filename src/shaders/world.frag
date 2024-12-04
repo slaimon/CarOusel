@@ -19,6 +19,9 @@ out vec4 color;
 // spotlight parameters
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
 
+// headlights parameters
+#define NUM_CARS     1
+
 // shadow mapping parameters
 #define BIAS_PCF_SUN   0.005
 #define BIAS_PCF_LAMP  0.001
@@ -38,7 +41,7 @@ in vec2 vTexCoord;
 in vec4 vPosSunLS;
 in vec3 vSunWS;
 in vec4 vPosLampLS[NUM_LAMPS];
-in vec4 vPosHeadlightProjWS;
+in vec4 vPosHeadlightProjWS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
@@ -125,10 +128,10 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
-float isLitByCar() {
-	if (vPosHeadlightProjWS.w < 0.0)
+float isLitByCar(int i) {
+	if (vPosHeadlightProjWS[i].w < 0.0)
        return 0.0;
-	vec2 texcoords = (vPosHeadlightProjWS/vPosHeadlightProjWS.w).xy;
+	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
 	return (length(texcoords) <= 1.0) ? (1.0) : (0.0);
 }
 
@@ -209,7 +212,11 @@ void main(void) {
 	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize, BIAS_PCF_SUN);
    }
    
-   vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * isLitByCar();
+   float headlightintensity = 0.0;
+   for (int i = 0; i < 2*NUM_CARS; ++i) {
+      headlightintensity += isLitByCar(i);
+   }
+   vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
 } 
