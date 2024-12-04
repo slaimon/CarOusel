@@ -159,6 +159,7 @@ bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
 bool lampState = false;
+bool lampUserState = false;
 bool drawShadows = true;
 bool sunState = true;
 float playerMinHeight = 0.01;
@@ -211,6 +212,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
          
          case GLFW_KEY_L:
+            lampUserState = !lampUserState;
+            break;
+         
+         case GLFW_KEY_K:
             sunState = !sunState;
             break;
 
@@ -647,8 +652,10 @@ int main(int argc, char** argv) {
       
       if (timeStep) {
          r.update();
-         lampSunlightSwitch(r.sunlight_direction());
+         lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
       }
+      lamps.setUserSwitch(lampUserState);
+      lampState = lamps.isOn();
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
