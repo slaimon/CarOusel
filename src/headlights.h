@@ -37,10 +37,30 @@ class Headlights {
          return projector[i].lightMatrix();
       }
 
+      void bindFramebuffer(int i) {
+         assert(i == 0 || i == 1);
+         projector[i].bindFramebuffer();
+      }
+
+      void updateLightMatrixUniform(int i, shader s, const char* uniform_name) {
+         assert(i == 0 || i == 1);
+         projector[i].updateLightMatrixUniform(s, uniform_name);
+      }
+
+      void bindTexture(int i, int texture_slot) {
+         assert(i == 0 || i == 1);
+         projector[i].bindTexture(texture_slot);
+      }
+
       // s.program must be in use
-      void updateLightMatrixUniform(shader s, const char* uniform_name) {
+      void updateLightMatrixUniformArray(shader s, const char* uniform_name) {
          lightMatrix[0] = projector[0].lightMatrix();
          lightMatrix[1] = projector[1].lightMatrix();
          glUniformMatrix4fv(s[uniform_name], 2, GL_FALSE, &lightMatrix[0][0][0]);
+      }
+
+      int getTextureID(int i) {
+         assert(i == 0 || i == 1);
+         return projector[i].getTextureID();
       }
 };
