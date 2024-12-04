@@ -226,7 +226,7 @@ void main(void) {
    
    float headlightintensity = 0.0;
    for (int i = 0; i < 2*NUM_CARS; ++i) {
-      headlightintensity += isLitByCar(i);
+      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * isLitByCar(i);
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
