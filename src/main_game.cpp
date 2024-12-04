@@ -81,6 +81,7 @@ int height = 900;
 // shadowmap sizes
 #define SUN_SHADOWMAP_SIZE  2048u
 #define LAMP_SHADOWMAP_SIZE  512u
+#define HEADLIGHT_SHADOWMAP_SIZE   256u
 
 // textures and shading
 typedef enum shadingMode {
@@ -649,7 +650,7 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   Headlights headlights(glm::radians(10.f), center, scale);
+   Headlights headlights(glm::radians(10.f), center, scale, HEADLIGHT_SHADOWMAP_SIZE);
 
 
    glEnable(GL_DEPTH_TEST);

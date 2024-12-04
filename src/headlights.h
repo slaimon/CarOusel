@@ -14,7 +14,7 @@ class Headlights {
       std::vector<HeadlightProjector> projector;
 
    public:
-      Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale) {
+      Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale, unsigned int shadowmap_size) {
          lightMatrix[0] = glm::mat4(1.f);
          lightMatrix[1] = glm::mat4(1.f);
          projMatrix = glm::perspective(opening_angle, 1.f, 0.001f / car_frame_scale, 1.f / car_frame_scale);
@@ -23,8 +23,8 @@ class Headlights {
          glm::mat4 R = glm::rotate(glm::radians(-5.f), glm::vec3(1.f, 0.f, 0.f));
 
          projector.reserve(2);
-         projector.emplace_back(256u, glm::translate(R, glm::vec3(0.45f, 0.5f, -1.25f)), projMatrix);
-         projector.emplace_back(256u, glm::translate(R, glm::vec3(-0.45f, 0.5f, -1.25f)), projMatrix);
+         projector.emplace_back(shadowmap_size, glm::translate(R, glm::vec3(0.45f, 0.5f, -1.25f)), projMatrix);
+         projector.emplace_back(shadowmap_size, glm::translate(R, glm::vec3(-0.45f, 0.5f, -1.25f)), projMatrix);
       }
 
       void setCarFrame(glm::mat4 F) {
