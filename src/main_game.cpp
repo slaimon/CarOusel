@@ -98,7 +98,7 @@ typedef enum textureSlot {
    TEXTURE_GRASS,
    TEXTURE_ROAD,
    TEXTURE_DIFFUSE,
-   TEXTURE_NORMAL,
+   TEXTURE_SHADOWMAP_CARS,
    TEXTURE_SHADOWMAP_SUN,
    TEXTURE_SHADOWMAP_LAMPS
 } textureSlot_t;
@@ -657,8 +657,19 @@ int main(int argc, char** argv) {
 
       // update the headlights' view matrices
       headlights.setCarFrame(r.cars()[0].frame);
+
          glUseProgram(shader_world.program);
-         headlights.updateLightMatrixUniform(shader_world, "uHeadlightMatrix");
+         headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");
+
+      // draw the headlight's shadowmap
+      if (drawShadows) {
+         glUseProgram(shader_depth.program);
+         headlights.updateLightMatrixUniform(0, shader_depth, "uLightMatrix");
+         headlights.bindFramebuffer(0);
+         headlights.bindTexture(0, TEXTURE_SHADOWMAP_CARS);
+         draw_scene(stack, true);
+         glUseProgram(0);
+      }
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
