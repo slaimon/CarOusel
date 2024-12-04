@@ -308,10 +308,10 @@ void draw_cars(shader sh, matrix_stack stack) {
    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    for (unsigned int ic = 0; ic < r.cars().size(); ++ic) {
       stack.push();
-      stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f,.5f,0.f))); // bump the car upwards so the wheels don't clip into the terrain
       stack.mult(r.cars()[ic].frame);
       stack.mult(glm::scale(glm::mat4(1.), glm::vec3(3.5f)));
-      stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f,1.f,0.f)));  // make it face the direction it's going
+      stack.mult(glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f,1.f,0.f)));  // make the car face the direction it's going
+      stack.mult(glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.15f, 0.f))); // bump it upwards so the wheels don't clip into the terrain
       
       glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform1f(sh["uShininess"], 75.f);
