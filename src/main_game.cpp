@@ -165,7 +165,7 @@ bool debugView = true;
 bool timeStep = true;
 bool lampState = false;
 bool drawShadows = false;
-bool sunState = true;
+bool sunState = false;
 float playerMinHeight = 0.01;
 
 float scale;

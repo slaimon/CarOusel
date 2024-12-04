@@ -54,6 +54,23 @@ class Projector {
       }
 };
 
+// represents a car's headlight
+class HeadlightProjector : public Projector {
+   protected:
+      glm::mat4 headlightTransform;
+
+   public:
+      HeadlightProjector(unsigned int shadowmap_size, glm::mat4 headlight_transform, glm::mat4 proj_matrix)
+         : Projector(shadowmap_size) {
+         headlightTransform = headlight_transform;
+         projMatrix = proj_matrix;
+      }
+
+      void setCarTransform(glm::mat4 car_transform) {
+         viewMatrix = glm::inverse(car_transform * headlightTransform);
+      }
+};
+
 // represents a directional light
 class DirectionalProjector : public Projector {
    protected:
