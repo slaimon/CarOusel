@@ -21,6 +21,7 @@ out vec4 color;
 
 // headlights parameters
 #define NUM_CARS     1
+#define HEADLIGHT_SPREAD 0.05
 
 // shadow mapping parameters
 #define BIAS_PCF_SUN   0.005
@@ -133,12 +134,12 @@ float isLitByCar(int i) {
        return 0.0;
 	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
 	float d = length(texcoords);
-	if (d <= 0.01)
+	if (d <= HEADLIGHT_SPREAD)
 	   return 1.0;
 	if (d > 1.0)
 	   return 0.0;
 	else
-	   return 1.0/(10.0*d*d) - 0.01;
+	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
 }
 
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
