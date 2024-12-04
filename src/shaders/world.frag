@@ -136,7 +136,7 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
-float isLitByCar(int i) {
+float headlightIntensity(int i) {
 	if (vPosHeadlightProjWS[i].w < 0.0)
        return 0.0;
 	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
@@ -228,7 +228,7 @@ void main(void) {
    
    float headlightintensity = 0.0;
    for (int i = 0; i < 2*NUM_CARS; ++i) {
-      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * isLitByCar(i);
+      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headlightIntensity(i);
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
