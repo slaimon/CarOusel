@@ -27,7 +27,7 @@ class Headlights {
       Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale, unsigned int shadowmap_size) {
          lightMatrix[0] = glm::mat4(1.f);
          lightMatrix[1] = glm::mat4(1.f);
-         projMatrix = glm::perspective(opening_angle, 1.f, 0.005f / car_frame_scale, 1.f / car_frame_scale);
+         projMatrix = glm::perspective(opening_angle, 1.f, 0.005f / car_frame_scale, 0.5f / car_frame_scale);
 
          carToWorld = glm::translate(glm::scale(glm::mat4(1.f), glm::vec3(car_frame_scale)), -car_frame_origin);
          glm::mat4 R = glm::rotate(glm::radians(-5.f), glm::vec3(1.f, 0.f, 0.f));
