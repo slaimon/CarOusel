@@ -721,10 +721,7 @@ int main(int argc, char** argv) {
          if (drawShadows) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
-            if (lampState)
-               draw_texture(lamps.getProjector(0).getTextureID(), lamps.getTextureSlots()[0]);
-            else
-               draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
+            draw_texture(headlights.getTextureID(0), TEXTURE_SHADOWMAP_CARS);
             glEnable(GL_DEPTH_TEST);
             glViewport(0, 0, width, height);
          }
