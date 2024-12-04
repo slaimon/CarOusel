@@ -665,6 +665,7 @@ int main(int argc, char** argv) {
 
          glUseProgram(shader_world.program);
          headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");
+         headlights.updatePositionUniformArray(shader_world, "uHeadlightPos");
 
       // draw the headlight's shadowmap
       if (drawShadows) {

@@ -53,6 +53,7 @@ uniform vec3 uSunDirection;
 uniform float uSunState;
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uLampDirection;
+uniform vec3 uHeadlightPos[2*NUM_CARS];
 
 // lamp parameters
 uniform float uLampState;
@@ -113,6 +114,19 @@ float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
       return 0.0;
 }
 
+float headlightIntensity(int i) {
+	if (vPosHeadlightProjWS[i].w < 0.0)
+       return 0.0;
+	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
+	float d = length(texcoords);
+    if (d > 1.0)
+      return 0.0;
+	if (d <= HEADLIGHT_SPREAD_SQRT)
+	   return 1.0;
+	else
+	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
+}
+
 float attenuation(vec3 lightPos, vec3 surfacePos) {
    float d = length(lightPos-surfacePos);
    
@@ -134,19 +148,6 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    float depth = texture(shadowmap,pLS.xy).x;
    
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
-}
-
-float headlightIntensity(int i) {
-	if (vPosHeadlightProjWS[i].w < 0.0)
-       return 0.0;
-	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
-	float d = length(texcoords);
-    if (d > 1.0)
-      return 0.0;
-	if (d <= HEADLIGHT_SPREAD_SQRT)
-	   return 1.0;
-	else
-	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
 }
 
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
@@ -228,7 +229,8 @@ void main(void) {
    
    float headlightintensity = 0.0;
    for (int i = 0; i < 2*NUM_CARS; ++i) {
-      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headlightIntensity(i);
+      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headlightIntensity(i) *
+	                        isLit(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightProjWS[i], uHeadlightShadowmap[i]);
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
