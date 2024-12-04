@@ -5,6 +5,7 @@ out vec4 color;
 #define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
+#define HEADLIGHT_COLOR    vec3(1.00,1.00,0.00)
 
 // lamp group parameters
 #define NUM_LAMPS         19
@@ -37,11 +38,12 @@ in vec2 vTexCoord;
 in vec4 vPosSunLS;
 in vec3 vSunWS;
 in vec4 vPosLampLS[NUM_LAMPS];
+in vec4 vPosHeadlightProjWS;
 
 
 /*   ------   UNIFORMS   ------   */
 
-// coordinates of the lamps in world space
+// coordinates of the lights in world space
 uniform vec3 uSunDirection;
 uniform float uSunState;
 uniform vec3 uLamps[NUM_LAMPS];
@@ -123,6 +125,13 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
    return ((depth + bias < pLS.z) ? (0.0) : (1.0));
 }
 
+float isLitByCar() {
+	if (vPosHeadlightProjWS.w < 0.0)
+       return 0.0;
+	vec2 texcoords = (vPosHeadlightProjWS/vPosHeadlightProjWS.w).xy;
+	return (length(texcoords) <= 1.0) ? (1.0) : (0.0);
+}
+
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
    if (uDrawShadows == 0.0)
       return 1.0;
@@ -200,5 +209,7 @@ void main(void) {
 	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize, BIAS_PCF_SUN);
    }
    
-   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
+   vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * isLitByCar();
+   
+   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
 } 

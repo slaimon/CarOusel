@@ -21,6 +21,7 @@ out vec2 vTexCoord;
 out vec3 vSunWS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
+out vec4 vPosHeadlightProjWS;
 
 
 /*   ------   UNIFORMS   ------   */
@@ -33,6 +34,7 @@ uniform float uLampState;
 // light matrices
 uniform mat4 uLampMatrix[NUM_LAMPS];
 uniform mat4 uSunMatrix;
+uniform mat4 uHeadlightMatrix;
 
 // render mode
 uniform int uMode;
@@ -73,6 +75,9 @@ void main(void) {
    // shadow mapping computations
    vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
    vSunWS = computeLightPosWS(vPosSunLS);
+   
+   // projective texturing
+   vPosHeadlightProjWS = uHeadlightMatrix * uModel * vec4(aPosition, 1.0);
 
    // vertex computations
    vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;
