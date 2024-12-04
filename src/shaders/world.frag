@@ -61,10 +61,12 @@ uniform float uLampAngleOut;
 
 // shadow maps
 uniform float uDrawShadows;
-uniform int uSunShadowmapSize;
 uniform sampler2D uSunShadowmap;
+uniform int uSunShadowmapSize;
 uniform sampler2D uLampShadowmaps[NUM_LAMPS];
 uniform int uLampShadowmapSize;
+uniform sampler2D uHeadlightShadowmap;
+uniform int uHeadlightShadowmapSize;
 
 // rendering mode
 uniform int uMode;

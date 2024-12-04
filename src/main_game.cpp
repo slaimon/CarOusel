@@ -167,7 +167,7 @@ bool fineMovement = false;
 bool debugView = true;
 bool timeStep = true;
 bool lampState = false;
-bool drawShadows = false;
+bool drawShadows = true;
 bool sunState = false;
 float playerMinHeight = 0.01;
 
@@ -638,6 +638,11 @@ int main(int argc, char** argv) {
    
    // initialize the headlights
    Headlights headlights(HEADLIGHT_ANGLE, center, scale, HEADLIGHT_SHADOWMAP_SIZE);
+
+   glUseProgram(shader_world.program);
+   glUniform1i(shader_world["uHeadlightShadowmap"], TEXTURE_SHADOWMAP_CARS);
+   glUniform1i(shader_world["uHeadlightShadowmapSize"], HEADLIGHT_SHADOWMAP_SIZE);
+   glUseProgram(0);
 
 
    glEnable(GL_DEPTH_TEST);
