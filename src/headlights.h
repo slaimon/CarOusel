@@ -13,6 +13,16 @@ class Headlights {
       glm::mat4 carToWorld;
       std::vector<HeadlightProjector> projector;
 
+      void updateLightMatrix() {
+         lightMatrix[0] = projector[0].lightMatrix();
+         lightMatrix[1] = projector[1].lightMatrix();
+      }
+
+      void updatePosition() {
+         position[0] = projector[0].getPosition();
+         position[1] = projector[1].getPosition();
+      }
+
    public:
       Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale, unsigned int shadowmap_size) {
          lightMatrix[0] = glm::mat4(1.f);
@@ -25,6 +35,8 @@ class Headlights {
          projector.reserve(2);
          projector.emplace_back(shadowmap_size, glm::translate(R, glm::vec3(0.45f, 0.5f, -1.25f)), projMatrix);
          projector.emplace_back(shadowmap_size, glm::translate(R, glm::vec3(-0.45f, 0.5f, -1.25f)), projMatrix);
+
+         updatePosition();
       }
 
       void setCarFrame(glm::mat4 F) {
@@ -55,15 +67,14 @@ class Headlights {
 
       // s.program must be in use
       void updateLightMatrixUniformArray(shader s, const char* uniform_name) {
-         lightMatrix[0] = projector[0].lightMatrix();
-         lightMatrix[1] = projector[1].lightMatrix();
+         updateLightMatrix();
          glUniformMatrix4fv(s[uniform_name], 2, GL_FALSE, &lightMatrix[0][0][0]);
       }
 
       // s.program must be in use
       void updatePositionUniformArray(shader s, const char* uniform_name) {
-         position[0] = projector[0].getPosition();
-         position[1] = projector[1].getPosition();
+         updatePosition();
+         glUniform3fv(s[uniform_name], 2, &position[0][0]);
       }
 
       int getTextureID(int i) {
