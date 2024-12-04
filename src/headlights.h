@@ -10,7 +10,6 @@ class Headlights {
       glm::mat4 lightMatrix[2];
       glm::mat4 projMatrix;
       glm::mat4 carToWorld;
-      glm::mat4 headlightTransform[2];
       std::vector<HeadlightProjector> projector;
 
    public:

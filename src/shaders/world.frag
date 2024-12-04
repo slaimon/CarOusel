@@ -132,7 +132,13 @@ float isLitByCar(int i) {
 	if (vPosHeadlightProjWS[i].w < 0.0)
        return 0.0;
 	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
-	return 1.0/(length(texcoords)*length(texcoords));
+	float d = length(texcoords);
+	if (d <= 0.01)
+	   return 1.0;
+	if (d > 1.0)
+	   return 0.0;
+	else
+	   return 1.0/(10.0*d*d) - 0.01;
 }
 
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {

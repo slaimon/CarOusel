@@ -650,7 +650,7 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   Headlights headlights(glm::radians(10.f), center, scale, HEADLIGHT_SHADOWMAP_SIZE);
+   Headlights headlights(glm::radians(20.f), center, scale, HEADLIGHT_SHADOWMAP_SIZE);
 
 
    glEnable(GL_DEPTH_TEST);
