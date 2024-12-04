@@ -21,7 +21,8 @@ out vec4 color;
 
 // headlights parameters
 #define NUM_CARS     1
-#define HEADLIGHT_SPREAD 0.05
+#define HEADLIGHT_SPREAD      0.05
+#define HEADLIGHT_SPREAD_SQRT sqrt(HEADLIGHT_SPREAD)
 
 // shadow mapping parameters
 #define BIAS_PCF_SUN   0.005
@@ -140,7 +141,7 @@ float isLitByCar(int i) {
 	float d = length(texcoords);
     if (d > 1.0)
       return 0.0;
-	if (d <= HEADLIGHT_SPREAD)
+	if (d <= HEADLIGHT_SPREAD_SQRT)
 	   return 1.0;
 	else
 	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
