@@ -649,7 +649,7 @@ int main(int argc, char** argv) {
    treeT = treeTransform(r.trees(), scale, center);
    
    // initialize the headlights
-   Headlights hl(glm::radians(10.f), center, scale);
+   Headlights headlights(glm::radians(10.f), center, scale);
 
 
    glEnable(GL_DEPTH_TEST);
@@ -668,9 +668,9 @@ int main(int argc, char** argv) {
       }
 
       // update the headlights' view matrices
-      hl.setCarFrame(r.cars()[0].frame);
+      headlights.setCarFrame(r.cars()[0].frame);
          glUseProgram(shader_world.program);
-         glUniformMatrix4fv(shader_world["uHeadlightMatrix"], 1, GL_FALSE, &hl.getMatrix(0)[0][0]);
+         glUniformMatrix4fv(shader_world["uHeadlightMatrix"], 1, GL_FALSE, &headlights.getMatrix(0)[0][0]);
       
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
@@ -713,8 +713,8 @@ int main(int argc, char** argv) {
                draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
          draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
-         draw_frustum(hl.getMatrix(0), COLOR_RED);
-         draw_frustum(hl.getMatrix(1), COLOR_RED);
+         draw_frustum(headlights.getMatrix(0), COLOR_RED);
+         draw_frustum(headlights.getMatrix(1), COLOR_RED);
          draw_bbox(bbox_scene, COLOR_BLACK);
          draw_sunDirection(r.sunlight_direction());
 
