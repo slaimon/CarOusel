@@ -111,7 +111,7 @@ inline void generateTerrainVertexNormals(terrain t, renderable& r) {
 inline void generateTrackVertexNormals(track t, renderable& r) {
     unsigned int size = t.curbs[0].size();
 
-    std::vector<float> normals(2 * 3 * size);
+    std::vector<float> normals;
     for (unsigned int i = 0; i < size; ++i) {
         glm::vec3 V0 = t.curbs[0][(i + 1) % size] - t.curbs[0][i];
         glm::vec3 V1 = t.curbs[1][(i + 1) % size] - t.curbs[0][i];
