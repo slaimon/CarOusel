@@ -147,7 +147,7 @@ void updateDelta() {
 CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
 unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
 bool fineMovement = false;
-bool debugView = true;
+bool debugView = false;
 bool timeStep = true;
 bool lampState = false;
 bool lampUserState = false;
@@ -465,11 +465,11 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
    }
 
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_cameramen(sh, stack);
+   draw_cameramen(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_trees(sh, stack);
+   draw_trees(sh, stack);
     //check_gl_errors(__LINE__, __FILE__);
-   //draw_lamps(sh, stack);
+   draw_lamps(sh, stack);
     check_gl_errors(__LINE__, __FILE__);
 }
 
