@@ -161,9 +161,6 @@ float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSiz
    vec4 pLS = (posLS/posLS.w)*0.5+0.5;
    if (pLS.x < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
       return 0.0;
-   // the pixel is in shadow if the normal points away from the light source
-   if (dot(normalize(L), normalize(N)) < 0.0)
-      return 0.0;
 
    float storedDepth;
    float lit = 1.0;
