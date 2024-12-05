@@ -81,9 +81,9 @@ int height = 900;
 #define CARS_NUM 1
 
 // shadowmap sizes
-#define SUN_SHADOWMAP_SIZE  2048u
-#define LAMP_SHADOWMAP_SIZE  512u
-#define HEADLIGHT_SHADOWMAP_SIZE   256u
+#define SUN_SHADOWMAP_SIZE         2048u
+#define LAMP_SHADOWMAP_SIZE         512u
+#define HEADLIGHT_SHADOWMAP_SIZE   1024u
 
 // textures and shading
 typedef enum shadingMode {
@@ -236,13 +236,6 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
-}
-
-void inline lampSunlightSwitch(glm::vec3 sunlight_direction) {
-   if (dot(normalize(sunlight_direction), glm::vec3(0.f, 1.f, 0.f)) <= LAMP_NIGHTTIME_THRESHOLD)
-      lampState = true;
-   else
-      lampState = false;
 }
 
 
@@ -662,7 +655,7 @@ int main(int argc, char** argv) {
       
       if (timeStep) {
          r.update();
-         lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
+         //lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
       }
 
       // update the headlights' view matrices

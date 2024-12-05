@@ -25,8 +25,9 @@ out vec4 color;
 #define HEADLIGHT_SPREAD_SQRT sqrt(HEADLIGHT_SPREAD)
 
 // shadow mapping parameters
-#define BIAS_PCF_SUN   0.005
-#define BIAS_PCF_LAMP  0.001
+#define BIAS_PCF_SUN        0.005
+#define BIAS_PCF_LAMP       0.001
+#define BIAS_PCF_HEADLIGHT  0.01
 #define BIAS_A       0.1
 #define BIAS_MIN_E   0.001
 #define BIAS_MAX_E   0.2
@@ -147,7 +148,7 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
 
    float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
    vec4 pLS = (posLS/posLS.w)*0.5+0.5;
-   if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
+   if (pLS.x < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
       return 0.0;
    float depth = unpack(texture(shadowmap,pLS.xy));
    
@@ -157,13 +158,15 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
    if (uDrawShadows == 0.0)
       return 1.0;
+   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
+   if (pLS.x < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
+      return 0.0;
    // the pixel is in shadow if the normal points away from the light source
    if (dot(normalize(L), normalize(N)) < 0.0)
       return 0.0;
 
    float storedDepth;
    float lit = 1.0;
-   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
@@ -235,7 +238,7 @@ void main(void) {
    //for (int i = 0; i < 2*NUM_CARS; ++i) {
    int i = 0;
       headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headlightIntensity(i) *
-	                        isLit(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightProjWS[i], uHeadlightShadowmap[i]);
+	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightProjWS[i], uHeadlightShadowmap[i], uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
    //}
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
