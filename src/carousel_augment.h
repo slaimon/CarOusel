@@ -5,8 +5,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
-#include "../common/carousel/carousel.h"
 #include "../common/renderable.h"
+#include "../common/carousel/carousel.h"
+#include "../common/carousel/carousel_to_renderable.h"
 
 #define N_GROUND_TILES 20.0   // the terrain is covered with 20^2 tiles
 
@@ -82,14 +83,27 @@ inline std::vector<GLfloat> generateTerrainTextureCoords(terrain t) {
     return v;
 }
 
-inline glm::vec3 getTerrainVertex(terrain t, const unsigned int i, const unsigned int j) {
+inline float getTerrainHeight(terrain t, const unsigned int i, const unsigned int j) {
     const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
     const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
 
     float x = t.rect_xz[0] + (i / float(X)) * t.rect_xz[2];
     float z = t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3];
 
-    return glm::vec3(x, t.hf((i >= X) ? (X - 1) : (i), (j >= Z) ? (Z - 1) : (j)), z);
+    return t.hf((i >= X) ? (X - 1) : (i), (j >= Z) ? (Z - 1) : (j));
+}
+
+inline glm::vec3 computeVertexNormal(terrain t, unsigned int ix, unsigned int iz) {
+   float hL = getTerrainHeight(t, ix - 1, iz);
+   float hR = getTerrainHeight(t, ix + 1, iz);
+   float hD = getTerrainHeight(t, ix, iz - 1);
+   float hU = getTerrainHeight(t, ix, iz + 1);
+
+   glm::vec3 n;
+   n.x = hL - hR;
+   n.y = hD - hU;
+   n.z = 2.0f;
+   return glm::normalize(n);
 }
 
 inline void generateTerrainVertexNormals(terrain t, renderable& r) {
@@ -99,9 +113,7 @@ inline void generateTerrainVertexNormals(terrain t, renderable& r) {
     std::vector<float> normals;
     for (unsigned int iz = 0; iz < Z; ++iz) {
         for (unsigned int ix = 0; ix < X; ++ix) {
-            glm::vec3 V = getTerrainVertex(t, ix + 1, iz) - getTerrainVertex(t, ix, iz);
-            glm::vec3 U = getTerrainVertex(t, ix, iz + 1) - getTerrainVertex(t, ix, iz);
-            pushVec3ToBuffer(normals, glm::normalize(glm::cross(U, V)));
+           pushVec3ToBuffer(normals, computeVertexNormal(t, ix, iz));
         }
     }
 
