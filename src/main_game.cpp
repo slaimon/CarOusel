@@ -105,6 +105,14 @@ void load_models() {
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
 
+shader shader_basic, shader_world, shader_depth, shader_fsq;
+void load_shaders() {
+   shader_basic.create_program((shaders_path + "basic.vert").c_str(), (shaders_path + "basic.frag").c_str());
+   shader_world.create_program((shaders_path + "world.vert").c_str(), (shaders_path + "world.frag").c_str());
+   shader_depth.create_program((shaders_path + "depth.vert").c_str(), (shaders_path + "depth.frag").c_str());
+   shader_fsq.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq.frag").c_str());
+}
+
 // the passed shader MUST be already active!
 void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox, shader s) {
    float scale = 1.f / bbox.diagonal();
@@ -223,7 +231,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 
 race r;
-shader shader_basic, shader_world, shader_depth;
 renderable fram;
 void draw_frame(glm::mat4 F) {
    glUseProgram(shader_basic.program);
@@ -371,7 +378,6 @@ void draw_trees(shader sh, matrix_stack stack) {
    glUseProgram(0);
 }
 
-shader shader_fsq;
 renderable r_quad;
 void draw_texture(GLint tex_id, unsigned int texture_slot) {
    GLint at;
@@ -535,18 +541,14 @@ int main(int argc, char** argv) {
 
 
    glViewport(0, 0, width, height);
-   shader_basic.create_program((shaders_path + "basic.vert").c_str(), (shaders_path + "basic.frag").c_str());
-   shader_world.create_program((shaders_path + "world.vert").c_str(), (shaders_path + "world.frag").c_str());
-   shader_depth.create_program((shaders_path + "depth.vert").c_str(), (shaders_path + "depth.frag").c_str());
-   shader_fsq.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq.frag").c_str());
-      
    glm::mat4 proj = glm::perspective(glm::radians(45.f), (float)width/(float)height, 0.001f, 10.f);
    
    load_textures();
+   load_shaders();
    glUseProgram(shader_world.program);
    glUniformMatrix4fv(shader_world["uProj"], 1, GL_FALSE, &proj[0][0]);
    glUniformMatrix4fv(shader_world["uView"], 1, GL_FALSE, &camera.matrix()[0][0]);
-   glUniform1i(shader_world["uColorImage"],0);
+   glUniform1i(shader_world["uColorImage"], 0);
    
    glUseProgram(shader_basic.program);
    glUniformMatrix4fv(shader_basic["uProj"], 1, GL_FALSE, &proj[0][0]);
