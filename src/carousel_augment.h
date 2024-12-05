@@ -135,3 +135,30 @@ inline void generateTrackVertexNormals(track t, renderable& r) {
 
     r.add_vertex_attribute<float>(&normals[0], 2 * 3 * size, 2, 3);
 }
+
+void inline prepareTrack(race r, renderable& r_track) {
+   std::cout << "Generating track..." << std::endl;
+
+   r_track.create();
+   game_to_renderable::to_track(r, r_track);
+
+   std::vector<GLuint> trackTriangles = generateTrackTriangles(r.t().curbs[0].size());
+   r_track.add_indices<GLuint>(&trackTriangles[0], (unsigned int)trackTriangles.size(), GL_TRIANGLES);
+
+   std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
+   r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
+
+   generateTrackVertexNormals(r.t(), r_track);
+}
+
+void inline prepareTerrain(race r, renderable& r_terrain) {
+   std::cout << "Generating terrain..." << std::endl;
+
+   r_terrain.create();
+   game_to_renderable::to_heightfield(r, r_terrain);
+
+   std::vector<GLfloat> terrainTextureCoords = generateTerrainTextureCoords(r.ter());
+   r_terrain.add_vertex_attribute<GLfloat>(&terrainTextureCoords[0], terrainTextureCoords.size(), 4, 2);
+
+   generateTerrainVertexNormals(r.ter(), r_terrain);
+}
