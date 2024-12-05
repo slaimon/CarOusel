@@ -27,14 +27,14 @@ class Headlights {
       Headlights(float opening_angle, glm::vec3 car_frame_origin, float car_frame_scale, unsigned int shadowmap_size) {
          lightMatrix[0] = glm::mat4(1.f);
          lightMatrix[1] = glm::mat4(1.f);
-         projMatrix = glm::perspective(opening_angle/3.f, 3.f, 0.005f / car_frame_scale, 0.5f / car_frame_scale);
+         projMatrix = glm::perspective(opening_angle/3.f, 3.f, 0.005f , 0.5f );
 
-         carToWorld = glm::translate(glm::scale(glm::mat4(1.f), glm::vec3(car_frame_scale)), -car_frame_origin);
-         glm::mat4 R = glm::rotate(glm::radians(-7.f), glm::vec3(1.f, 0.f, 0.f));
+         carToWorld = glm::mat4(1.f);// glm::translate(glm::scale(glm::mat4(1.f), glm::vec3(car_frame_scale)), -car_frame_origin);
+         //glm::mat4 R = glm::rotate(glm::radians(-7.f), glm::vec3(1.f, 0.f, 0.f));
 
          projector.reserve(2);
-         projector.emplace_back(shadowmap_size, glm::translate(glm::vec3(0.45f, 0.5f, -1.25f))*R, projMatrix);
-         projector.emplace_back(shadowmap_size, glm::translate(glm::vec3(-0.45f, 0.5f, -1.25f))*R, projMatrix);
+         projector.emplace_back(shadowmap_size, glm::mat4(1.f), projMatrix);//glm::translate(glm::vec3(0.45f, 0.5f, -1.25f))*R, projMatrix);
+         projector.emplace_back(shadowmap_size, glm::mat4(1.f), projMatrix);//glm::translate(glm::vec3(-0.45f, 0.5f, -1.25f))*R, projMatrix);
 
          updatePosition();
       }

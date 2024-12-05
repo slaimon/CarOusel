@@ -153,6 +153,7 @@ bool lampState = false;
 bool lampUserState = false;
 bool drawShadows = true;
 bool sunState = false;
+bool anchor = false;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -212,6 +213,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
 
          case GLFW_KEY_Q:
             drawShadows = !drawShadows;
+            break;
+
+         case GLFW_KEY_Z:
+            anchor = true;
             break;
       }
    }  
@@ -625,6 +630,8 @@ int main(int argc, char** argv) {
    glUniform1i(shader_world["uHeadlightShadowmapSize"], HEADLIGHT_SHADOWMAP_SIZE);
    glUseProgram(0);
 
+   glm::mat4 playerFrame = glm::mat4(1.f);
+
 
    glEnable(GL_DEPTH_TEST);
    while (!glfwWindowShouldClose(window)) {
@@ -642,7 +649,11 @@ int main(int argc, char** argv) {
       }
 
       // update the headlights' view matrices
-      headlights.setCarFrame(r.cars()[0].frame);
+      if (anchor) {
+         playerFrame = glm::inverse(camera.matrix());
+         anchor = false;
+      }
+      headlights.setCarFrame(playerFrame);
 
          glUseProgram(shader_world.program);
          headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");

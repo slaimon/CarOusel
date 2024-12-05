@@ -232,14 +232,15 @@ void main(void) {
    }
    
    float headlightintensity = 0.0;
-   for (int i = 0; i < 2*NUM_CARS; ++i) {
+   //for (int i = 0; i < 2*NUM_CARS; ++i) {
+   int i = 0;
       float headint = headlightIntensity(i);
-	  // if the fragment is outside this headlight's light cone, skip all calculations
-	  if (headint == 0.0)
-	     continue;
-      headlightintensity += attenuation(vPosHeadlightLS[i].w) * headint * 
-	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap[i], uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
-   }
+	  // // if the fragment is outside this headlight's light cone, skip all calculations
+	  // if (headint == 0.0)
+	     // continue;
+      headlightintensity += //attenuation(vPosHeadlightLS[i].w) * headint * 
+	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap, uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
+   //}
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
