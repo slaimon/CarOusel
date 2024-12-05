@@ -25,6 +25,9 @@ class LampGroup {
       std::vector<bool> lampState;
       std::vector<unsigned int> activeLamps;
 
+      bool sunlightSwitchState;
+      bool userSwitchState;
+
       void updateActiveLampTable(unsigned int hasChanged) {
          // a lamp has turned on
          if (lampState[hasChanged]) {
@@ -77,6 +80,8 @@ class LampGroup {
 
          activeLamps.resize(size);
          numActiveLamps = 0;
+         sunlightSwitchState = false;
+         userSwitchState = false;
       }
 
       // get total number of lamps
@@ -142,5 +147,22 @@ class LampGroup {
       // bind the texture of the ith active lamp
       void bindTexture(unsigned int i) {
          lampProjectors[getActiveLamp(i)].bindTexture(lampTextureSlots[i]);
+      }
+
+      // set the lamp status according to the current sun position
+      void setSunlightSwitch(glm::vec3 sunlight_direction, float nighttime_threshold = 0.15f) {
+         if (dot(normalize(sunlight_direction), glm::vec3(0.f, 1.f, 0.f)) <= nighttime_threshold)
+            sunlightSwitchState = true;
+         else
+            sunlightSwitchState = false;
+      }
+
+      // set the user-defined lamp status
+      void setUserSwitch(bool state) {
+         userSwitchState = state;
+      }
+
+      bool isOn() {
+         return userSwitchState || sunlightSwitchState;
       }
 };
