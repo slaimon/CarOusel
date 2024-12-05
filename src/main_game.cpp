@@ -371,17 +371,6 @@ void draw_trees(shader sh, matrix_stack stack) {
    glUseProgram(0);
 }
 
-renderable r_trees;
-void draw_debugTrees(matrix_stack stack) {
-   glUseProgram(shader_basic.program);
-   glUniformMatrix4fv(shader_basic["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
-   glUniform3f(shader_basic["uColor"], 0.f, 1.0f, 0.f);
-   
-   r_trees.bind();
-   glDrawArrays(GL_LINES, 0, r_trees.vn);
-   glUseProgram(0);
-}
-
 shader shader_fsq;
 renderable r_quad;
 void draw_texture(GLint tex_id, unsigned int texture_slot) {
@@ -539,9 +528,6 @@ int main(int argc, char** argv) {
 
       generateTerrainVertexNormals(r.ter(), r_terrain);
    
-   // prepare the debug trees
-      r_trees.create();
-      game_to_renderable::to_tree(r, r_trees);
    
    draw_cameraman.resize(r.cameramen().size());
    for(unsigned int i=0; i<draw_cameraman.size(); i++)
