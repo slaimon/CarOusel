@@ -42,23 +42,6 @@ std::string shaders_path = BASE_DIR + "src/shaders/";
 std::string textures_path = BASE_DIR + "src/assets/textures/";
 std::string models_path = BASE_DIR + "src/assets/models/";
 
-
-template <typename T>
-void printVector (std::vector<T> v) {
-   std::stringstream s;
-   
-   std::cout << "ARRAY SIZE: " << v.size() << std::endl;
-   for (int i=0; i<v.size(); i++) {
-      s << v[i] << " ";
-   }
-   std::cout << s.str() << std::endl;
-}
-
-void printVec3 (glm::vec3 v) {
-   std::cout << "< " << v.x << " , " << v.y << " , " << v.z << " >" << std::endl;
-}
-
-
 int width = 1440;
 int height = 900;
 
