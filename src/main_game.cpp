@@ -517,28 +517,8 @@ int main(int argc, char** argv) {
    s_cube.compute_edges();
    s_cube.to_renderable(r_cube);
 
-   // prepare the track
-      r_track.create();
-      game_to_renderable::to_track(r, r_track);
-      
-      std::vector<GLuint> trackTriangles = generateTrackTriangles(r.t().curbs[0].size());
-      r_track.add_indices<GLuint>(&trackTriangles[0], (unsigned int) trackTriangles.size(), GL_TRIANGLES);
-      
-      std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
-      r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
-
-      generateTrackVertexNormals(r.t(), r_track);
-
-
-   // prepare the terrain
-      r_terrain.create();
-      game_to_renderable::to_heightfield(r, r_terrain);
-      
-      std::vector<GLfloat> terrainTextureCoords = generateTerrainTextureCoords(r.ter());
-      r_terrain.add_vertex_attribute<GLfloat>(&terrainTextureCoords[0], terrainTextureCoords.size(), 4, 2);
-
-      generateTerrainVertexNormals(r.ter(), r_terrain);
-   
+   prepareTrack(r, r_track);
+   prepareTerrain(r, r_terrain);
    
    draw_cameraman.resize(r.cameramen().size());
    for(unsigned int i=0; i<draw_cameraman.size(); i++)
