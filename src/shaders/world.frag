@@ -41,10 +41,10 @@ in vec3 vNormalWS;
 in vec2 vTexCoord;
 
 // light coordinates
-in vec4 vPosSunLS;
 in vec3 vSunWS;
+in vec4 vPosSunLS;
 in vec4 vPosLampLS[NUM_LAMPS];
-in vec4 vPosHeadlightProjWS[2*NUM_CARS];
+in vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
@@ -120,9 +120,9 @@ float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
 }
 
 float headlightIntensity(int i) {
-	if (vPosHeadlightProjWS[i].w < 0.0)
+	if (vPosHeadlightLS[i].w < 0.0)
        return 0.0;
-	vec2 texcoords = (vPosHeadlightProjWS[i]/vPosHeadlightProjWS[i].w).xy;
+	vec2 texcoords = (vPosHeadlightLS[i]/vPosHeadlightLS[i].w).xy;
 	float d = length(texcoords);
     if (d > 1.0)
       return 0.0;
@@ -237,8 +237,8 @@ void main(void) {
 	  // if the fragment is outside this headlight's light cone, skip all calculations
 	  if (headint == 0.0)
 	     continue;
-      headlightintensity += attenuation(vPosHeadlightProjWS[i].w) * headint * 
-	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightProjWS[i], uHeadlightShadowmap[i], uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
+      headlightintensity += attenuation(vPosHeadlightLS[i].w) * headint * 
+	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap[i], uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    

@@ -24,7 +24,7 @@ out vec2 vTexCoord;
 out vec3 vSunWS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
-out vec4 vPosHeadlightProjWS[2*NUM_CARS];
+out vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
@@ -81,7 +81,7 @@ void main(void) {
    
    // projective texturing
    for (int i = 0; i < 2*NUM_CARS; ++i) {
-      vPosHeadlightProjWS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+      vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
    }
 
    // vertex computations
