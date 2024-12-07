@@ -27,8 +27,8 @@ out vec4 color;
 // shadow mapping parameters
 #define BIAS_PCF_SUN        0.005
 #define BIAS_PCF_LAMP       0.001
-#define BIAS_PCF_HEADLIGHT  0.05
 #define BIAS_A       0.1
+#define BIAS_PCF_HEADLIGHT  0.001
 #define BIAS_MIN_E   0.001
 #define BIAS_MAX_E   0.2
 
@@ -158,16 +158,14 @@ float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
 float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
    if (uDrawShadows == 0.0)
       return 1.0;
+	  
    vec4 pLS = (posLS/posLS.w)*0.5+0.5;
-   if (pLS.x < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
-      return 0.0;
-
    float storedDepth;
    float lit = 1.0;
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  unpack(texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize));
+         storedDepth = unpack(texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize));
          if(storedDepth + bias < pLS.z )    
             lit  -= 1.0/25.0;
       }
@@ -232,15 +230,14 @@ void main(void) {
    }
    
    float headlightintensity = 0.0;
-   //for (int i = 0; i < 2*NUM_CARS; ++i) {
-   int i = 0;
+   for (int i = 0; i < 2*NUM_CARS; ++i) {
       float headint = headlightIntensity(i);
-	  // // if the fragment is outside this headlight's light cone, skip all calculations
-	  // if (headint == 0.0)
-	     // continue;
-      headlightintensity += //attenuation(vPosHeadlightLS[i].w) * headint * 
-	                        isLitPCF(normalize(uHeadlightPos[i]), surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap, uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
-   //}
+	  // if the fragment is outside this headlight's light cone, skip all calculations
+	  if (headint == 0.0)
+	     continue;
+      headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
+	                        isLitPCF(uHeadlightPos[i], surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap, uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
+   }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
