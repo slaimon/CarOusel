@@ -233,11 +233,10 @@ void main(void) {
       diffuseColor = vec4(uColor,1.0);
    }
    
-   float spotint, lit = 1.0;
    if (uLampState == 1.0) {
       for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
 	     // if the fragment is outside this lamp's light cone, skip all calculations
-	     spotint = spotlightIntensity(uLamps[i], vPosWS);
+	     float spotint = spotlightIntensity(uLamps[i], vPosWS);
 		 if (spotint == 0.0)
 		    continue;
 
@@ -254,8 +253,8 @@ void main(void) {
    
    float headlightintensity = 0.0;
    for (int i = 0; i < 2*NUM_CARS; ++i) {
-      float headint = headlightIntensity(i);
 	  // if the fragment is outside this headlight's light cone, skip all calculations
+	  float headint = headlightIntensity(i);
 	  if (headint == 0.0)
 	     continue;
       headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
