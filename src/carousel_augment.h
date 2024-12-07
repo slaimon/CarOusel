@@ -101,8 +101,8 @@ inline glm::vec3 computeVertexNormal(terrain t, unsigned int ix, unsigned int iz
 
    glm::vec3 n;
    n.x = hL - hR;
-   n.y = hD - hU;
-   n.z = 2.0f;
+   n.z = hD - hU;
+   n.y = 2.0f;
    return glm::normalize(n);
 }
 
