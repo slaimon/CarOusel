@@ -27,10 +27,10 @@ out vec4 color;
 // shadow mapping parameters
 #define BIAS_PCF_SUN        0.005
 #define BIAS_PCF_LAMP       0.001
-#define BIAS_A       0.1
 #define BIAS_PCF_HEADLIGHT  0.001
-#define BIAS_MIN_E   0.001
-#define BIAS_MAX_E   0.2
+#define BIAS_A       0.0001
+#define BIAS_MIN_E   0.0001
+#define BIAS_MAX_E   0.001
 
 
 /*   ------   INPUTS   ------   */
@@ -174,6 +174,29 @@ float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSiz
    return lit;
 }
 
+// use slope bias, as headlights are very close to the ground.
+float isLitByHeadlightPCF(int i, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+	  
+   vec4 posLS = vPosHeadlightLS[i];
+   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
+   float storedDepth;
+   float lit = 1.0;
+   
+   float bias = clamp(BIAS_A*tanacos(dot(N,normalize(uHeadlightPos[i]))), BIAS_MIN_E, BIAS_MAX_E);
+   for(float x = 0.0; x < 5.0; x+=1.0) {
+      for(float y = 0.0; y < 5.0; y+=1.0) {
+         storedDepth = unpack(texture(uHeadlightShadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/uHeadlightShadowmapSize));
+         if(storedDepth + bias < pLS.z )    
+            lit  -= 1.0/25.0;
+      }
+   }
+   
+   return lit;
+}
+
+
 void main(void) { 
    vec3 surfaceNormal;
    vec4 diffuseColor;
@@ -236,7 +259,7 @@ void main(void) {
 	  if (headint == 0.0)
 	     continue;
       headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
-	                        isLitPCF(uHeadlightPos[i], surfaceNormal, vPosHeadlightLS[i], uHeadlightShadowmap, uHeadlightShadowmapSize, BIAS_PCF_HEADLIGHT);
+	                        isLitByHeadlightPCF(i, surfaceNormal);
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR,1.0) * headlightintensity;
    
