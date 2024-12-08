@@ -81,9 +81,9 @@ typedef enum textureSlot {
    TEXTURE_GRASS,
    TEXTURE_ROAD,
    TEXTURE_DIFFUSE,
-   TEXTURE_SHADOWMAP_CARS,
    TEXTURE_SHADOWMAP_SUN,
-   TEXTURE_SHADOWMAP_LAMPS
+   TEXTURE_SHADOWMAP_LAMPS,
+   TEXTURE_SHADOWMAP_CARS
 } textureSlot_t;
 
 texture texture_grass_diffuse, texture_track_diffuse;
@@ -588,8 +588,12 @@ int main(int argc, char** argv) {
    // initialize the headlights
    Headlights headlights(HEADLIGHT_ANGLE, center, scale, HEADLIGHT_SHADOWMAP_SIZE);
 
+   int texture_slots_cars[2] =
+   { TEXTURE_SHADOWMAP_CARS + r.lamps().size(),
+     TEXTURE_SHADOWMAP_CARS + r.lamps().size() + 1 };
+
    glUseProgram(shader_world.program);
-   glUniform1i(shader_world["uHeadlightShadowmap"], TEXTURE_SHADOWMAP_CARS);
+   glUniform1iv(shader_world["uHeadlightShadowmap"], 2, &texture_slots_cars[0]);
    glUniform1i(shader_world["uHeadlightShadowmapSize"], HEADLIGHT_SHADOWMAP_SIZE);
    glUseProgram(0);
 
@@ -616,14 +620,16 @@ int main(int argc, char** argv) {
          headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");
          headlights.updatePositionUniformArray(shader_world, "uHeadlightPos");
 
-      // draw the headlight's shadowmap
+      // draw the headlights' shadowmaps
       if (drawShadows) {
-         glUseProgram(shader_depth.program);
-         headlights.updateLightMatrixUniform(0, shader_depth, "uLightMatrix");
-         headlights.bindFramebuffer(0);
-         headlights.bindTexture(0, TEXTURE_SHADOWMAP_CARS);
-         draw_scene(stack, true);
-         glUseProgram(0);
+         for (int i = 0; i < 2; ++i) {
+            glUseProgram(shader_depth.program);
+            headlights.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
+            headlights.bindFramebuffer(i);
+            headlights.bindTexture(i, texture_slots_cars[i]);
+            draw_scene(stack, true);
+            glUseProgram(0);
+         }
       }
       lamps.setUserSwitch(lampUserState);
       lampState = lamps.isOn();
@@ -678,7 +684,7 @@ int main(int argc, char** argv) {
          if (drawShadows) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
-            draw_texture(headlights.getTextureID(0), TEXTURE_SHADOWMAP_CARS);
+            draw_texture(headlights.getTextureID(0), texture_slots_cars[0]);
             glEnable(GL_DEPTH_TEST);
             glViewport(0, 0, width, height);
          }

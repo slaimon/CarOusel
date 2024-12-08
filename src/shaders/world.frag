@@ -67,7 +67,7 @@ uniform sampler2D uSunShadowmap;
 uniform int uSunShadowmapSize;
 uniform sampler2D uLampShadowmaps[NUM_LAMPS];
 uniform int uLampShadowmapSize;
-uniform sampler2D uHeadlightShadowmap;
+uniform sampler2D uHeadlightShadowmap[2*NUM_CARS];
 uniform int uHeadlightShadowmapSize;
 
 // rendering mode
@@ -187,7 +187,7 @@ float isLitByHeadlightPCF(int i, vec3 N) {
    float bias = clamp(BIAS_A*tanacos(dot(N,normalize(uHeadlightPos[i]))), BIAS_MIN_E, BIAS_MAX_E);
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth = unpack(texture(uHeadlightShadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/uHeadlightShadowmapSize));
+         storedDepth = unpack(texture(uHeadlightShadowmap[i], pLS.xy + vec2(-2.0+x,-2.0+y)/uHeadlightShadowmapSize));
          if(storedDepth + bias < pLS.z )    
             lit  -= 1.0/25.0;
       }
