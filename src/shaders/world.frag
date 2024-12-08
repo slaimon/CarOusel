@@ -90,8 +90,8 @@ float tanacos(float x) {
    return sqrt(1-x*x)/x;
 }
 
-vec4 sunlightColor() {
-   return max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
+float sunlightIntensity() {
+   return uSunState * max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0)));
 }
 
 // L and N must be normalized
@@ -237,6 +237,13 @@ void main(void) {
    vec4 headlightContrib = vec4(0.0);
    vec4 sunContrib = vec4(0.0);
    
+   float sunint = sunlightIntensity();
+   if (sunint > 0.0) {
+      sunContrib = vec4(SUNLIGHT_COLOR,1.0) * sunint *
+	               isLitBySunPCF(surfaceNormal) *
+	               (sunIntensityDiff + sunIntensitySpec);
+   }
+   
    if(uLampState == 1.0) {
 	  float lampsIntensity = 0.0;
 	  for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
@@ -250,11 +257,6 @@ void main(void) {
       lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
 
-   if (uSunState == 1.0) {
-      sunContrib = sunlightColor() *
-	               isLitBySunPCF(surfaceNormal) *
-	               (sunIntensityDiff + sunIntensitySpec);
-   }
    if (uHeadlightState == 1.0) {
 	  float headlightintensity = 0.0;
 	  for (int i = 0; i < 2*NUM_CARS; ++i) {

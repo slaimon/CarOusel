@@ -241,6 +241,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
 }
 
+bool isDaytime(glm::vec3 sunlight_direction) {
+   return glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f)) >= 0.f;
+}
+
 
 race r;
 renderable fram;
@@ -566,6 +570,7 @@ int main(int argc, char** argv) {
    bbox_scene.max = glm::vec3(stack.m() * glm::vec4(bbox_scene.max, 1.0));
    bbox_scene.max.y = 0.1f;
    DirectionalProjector sunProjector(bbox_scene, SUN_SHADOWMAP_SIZE, r.sunlight_direction());
+   bool daytime = isDaytime(r.sunlight_direction());
    
    // initialize the sun's uniforms
    glUseProgram(shader_world.program);
@@ -624,6 +629,7 @@ int main(int argc, char** argv) {
          r.update();
          lamps.setSunlightSwitch(r.sunlight_direction(), lamp_nighttime);
          headlights.setSunlightSwitch(r.sunlight_direction(), headlight_nighttime);
+         daytime = isDaytime(r.sunlight_direction());
       }
 
       // update the headlights' view matrices
@@ -662,7 +668,7 @@ int main(int argc, char** argv) {
          sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
       
       // draw the sun's shadowmap
-      if (sunState && drawShadows) {
+      if (sunState && drawShadows && daytime) {
          sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
          draw_scene(stack, true);
       }
@@ -700,7 +706,7 @@ int main(int argc, char** argv) {
          }
 
          // show the sun's shadow map
-         if (drawShadows && sunState) {
+         if (drawShadows && daytime) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
             draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
