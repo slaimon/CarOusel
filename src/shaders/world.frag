@@ -51,13 +51,16 @@ in vec4 vPosHeadlightLS[2*NUM_CARS];
 
 // coordinates of the lights in world space
 uniform vec3 uSunDirection;
-uniform float uSunState;
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uLampDirection;
 uniform vec3 uHeadlightPos[2*NUM_CARS];
 
-// lamp parameters
+// lights' activation state
+uniform float uSunState;
 uniform float uLampState;
+uniform float uHeadlightState;
+
+// lamp parameters
 uniform float uLampAngleIn;
 uniform float uLampAngleOut;
 
@@ -252,13 +255,15 @@ void main(void) {
    }
    
    float headlightintensity = 0.0;
-   for (int i = 0; i < 2*NUM_CARS; ++i) {
-	  // if the fragment is outside this headlight's light cone, skip all calculations
-	  float headint = headlightIntensity(i);
-	  if (headint == 0.0)
-	     continue;
-      headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
-	                        isLitByHeadlightPCF(i, surfaceNormal);
+   if (uHeadlightState == 1.0) {
+	   for (int i = 0; i < 2*NUM_CARS; ++i) {
+		  // if the fragment is outside this headlight's light cone, skip all calculations
+		  float headint = headlightIntensity(i);
+		  if (headint == 0.0)
+			 continue;
+		  headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
+								isLitByHeadlightPCF(i, surfaceNormal);
+	   }
    }
    vec4 headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * headlightintensity;
    

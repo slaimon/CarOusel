@@ -32,7 +32,11 @@ out vec4 vPosHeadlightLS[2*NUM_CARS];
 // coordinates of the lights in worldspace
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uSunDirection;
+
+// lights' activation state
+uniform float uSunState;
 uniform float uLampState;
+uniform float uHeadlightState;
 
 // light matrices
 uniform mat4 uLampMatrix[NUM_LAMPS];
@@ -80,8 +84,10 @@ void main(void) {
    vSunWS = computeLightPosWS(vPosSunLS);
    
    // projective texturing
-   for (int i = 0; i < 2*NUM_CARS; ++i) {
-      vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+   if (uHeadlightState == 1.0) {
+	   for (int i = 0; i < 2*NUM_CARS; ++i) {
+		  vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+	   }
    }
 
    // vertex computations

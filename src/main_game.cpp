@@ -157,10 +157,11 @@ unsigned int POVselected = 0; // will keep track of how many times the user has 
 bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
-bool lampState = false;
-bool lampUserState = false;
 bool drawShadows = true;
 bool sunState = false;
+bool lampState = false;
+bool lampUserState = false;
+bool headlightState = false;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -216,6 +217,10 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
          
          case GLFW_KEY_K:
             sunState = !sunState;
+            break;
+
+         case GLFW_KEY_J:
+            headlightState = !headlightState;
             break;
 
          case GLFW_KEY_Q:
@@ -621,7 +626,7 @@ int main(int argc, char** argv) {
          headlights.updatePositionUniformArray(shader_world, "uHeadlightPos");
 
       // draw the headlights' shadowmaps
-      if (drawShadows) {
+      if (headlightState && drawShadows) {
          for (int i = 0; i < 2; ++i) {
             glUseProgram(shader_depth.program);
             headlights.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
@@ -717,6 +722,7 @@ int main(int argc, char** argv) {
       glUniform1f(shader_world["uDrawShadows"], (drawShadows)?(1.0):(0.0));
       glUniform1f(shader_world["uSunState"], (sunState) ? (1.0) : (0.0));
       glUniform1f(shader_world["uLampState"], (lampState) ? (1.0) : (0.0));
+      glUniform1f(shader_world["uHeadlightState"], (headlightState) ? (1.0) : (0.0));
       glUseProgram(shader_basic.program);
       glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &viewMatrix[0][0]);
       
