@@ -14,7 +14,7 @@ out vec4 color;
 // positional lights attenuation coefficients
 #define ATTENUATION_C1  1.0
 #define ATTENUATION_C2  0.0
-#define ATTENUATION_C3  0.005
+#define ATTENUATION_C3  0.001
 
 // spotlight parameters
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
@@ -27,10 +27,9 @@ out vec4 color;
 // shadow mapping parameters
 #define BIAS_PCF_SUN        0.005
 #define BIAS_PCF_LAMP       0.001
-#define BIAS_PCF_HEADLIGHT  0.001
 #define BIAS_A       0.0001
 #define BIAS_MIN_E   0.0001
-#define BIAS_MAX_E   0.001
+#define BIAS_MAX_E   0.0015
 
 
 /*   ------   INPUTS   ------   */

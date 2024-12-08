@@ -57,7 +57,7 @@ int height = 900;
 #define LAMP_ANGLE_OUT  glm::radians(50.0f)
 
 // opening angle of the headlights' beam
-#define HEADLIGHT_ANGLE  glm::radians(45.f)
+#define HEADLIGHT_ANGLE  glm::radians(50.f)
 // how many cars should be displayed
 #define CARS_NUM 1
 
@@ -72,7 +72,7 @@ float headlight_nighttime = glm::cos(glm::radians(90.0 - HEADLIGHT_NIGHTTIME_THR
 // shadowmap sizes
 #define SUN_SHADOWMAP_SIZE         2048u
 #define LAMP_SHADOWMAP_SIZE         512u
-#define HEADLIGHT_SHADOWMAP_SIZE   1024u
+#define HEADLIGHT_SHADOWMAP_SIZE    512u
 
 // textures and shading
 typedef enum shadingMode {
