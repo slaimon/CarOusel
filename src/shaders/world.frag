@@ -92,7 +92,7 @@ float tanacos(float x) {
 }
 
 vec4 sunlightColor() {
-   return vec4(SUNLIGHT_COLOR, 1.0);//max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
+   return max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0))) * vec4(SUNLIGHT_COLOR,1.0);
 }
 
 // L and N must be normalized
