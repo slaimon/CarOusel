@@ -83,17 +83,17 @@ void main(void) {
       vSunWS = computeLightPosWS(vPosSunLS);
    }
    
-   // shadow mapping computations
-   if (uDrawShadows == 1.0) {
-      if (uLampState == 1.0) {
-         for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
-	       vPosLampLS[i] = uLampMatrix[i] * uModel * vec4(aPosition, 1.0);
-         }
+   // shadow mapping for lamps
+   if (uDrawShadows == 1.0 && uLampState == 1.0) {
+      for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
+         vPosLampLS[i] = uLampMatrix[i] * uModel * vec4(aPosition, 1.0);
       }
-      if (uHeadlightState == 1.0) {
-	     for (int i = 0; i < 2*NUM_CARS; ++i) {
-		    vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
-	      }
+   }
+   
+   // projective texturing for headlights
+   if (uHeadlightState == 1.0) {
+      for (int i = 0; i < 2*NUM_CARS; ++i) {
+         vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
       }
    }
 
