@@ -62,9 +62,12 @@ int height = 900;
 #define CARS_NUM 1
 
 // determines the time of day the lights should turn on/off
-// (1.0 = always active, 0.0 = never active)
-#define LAMP_NIGHTTIME_THRESHOLD 0.15f
-#define HEADLIGHT_NIGHTTIME_THRESHOLD 0.25f
+// insert the angular distance of the Sun above the horizon
+#define LAMP_NIGHTTIME_THRESHOLD         20.0
+#define HEADLIGHT_NIGHTTIME_THRESHOLD     0.0
+
+float lamp_nighttime = glm::cos(glm::radians(90.0 - LAMP_NIGHTTIME_THRESHOLD));
+float headlight_nighttime = glm::cos(glm::radians(90.0 - HEADLIGHT_NIGHTTIME_THRESHOLD));
 
 // shadowmap sizes
 #define SUN_SHADOWMAP_SIZE         2048u
@@ -619,8 +622,8 @@ int main(int argc, char** argv) {
       
       if (timeStep) {
          r.update();
-         lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
-         headlights.setSunlightSwitch(r.sunlight_direction(), HEADLIGHT_NIGHTTIME_THRESHOLD);
+         lamps.setSunlightSwitch(r.sunlight_direction(), lamp_nighttime);
+         headlights.setSunlightSwitch(r.sunlight_direction(), headlight_nighttime);
       }
 
       // update the headlights' view matrices
