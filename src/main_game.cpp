@@ -55,13 +55,16 @@ int height = 900;
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
 #define LAMP_ANGLE_OUT  glm::radians(50.0f)
-// determines the time of day the lamps should turn on/off
-#define LAMP_NIGHTTIME_THRESHOLD 0.15f
 
 // opening angle of the headlights' beam
 #define HEADLIGHT_ANGLE  glm::radians(45.f)
 // how many cars should be displayed
 #define CARS_NUM 1
+
+// determines the time of day the lights should turn on/off
+// (1.0 = always active, 0.0 = never active)
+#define LAMP_NIGHTTIME_THRESHOLD 0.15f
+#define HEADLIGHT_NIGHTTIME_THRESHOLD 0.25f
 
 // shadowmap sizes
 #define SUN_SHADOWMAP_SIZE         2048u
@@ -158,10 +161,11 @@ bool fineMovement = false;
 bool debugView = false;
 bool timeStep = true;
 bool drawShadows = true;
-bool sunState = false;
+bool sunState = true;
 bool lampState = false;
 bool lampUserState = false;
 bool headlightState = false;
+bool headlightUserState = false;
 float playerMinHeight = 0.01;
 
 float scale;
@@ -220,7 +224,7 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
 
          case GLFW_KEY_J:
-            headlightState = !headlightState;
+            headlightUserState = !headlightUserState;
             break;
 
          case GLFW_KEY_Q:
@@ -615,7 +619,8 @@ int main(int argc, char** argv) {
       
       if (timeStep) {
          r.update();
-         //lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
+         lamps.setSunlightSwitch(r.sunlight_direction(), LAMP_NIGHTTIME_THRESHOLD);
+         headlights.setSunlightSwitch(r.sunlight_direction(), HEADLIGHT_NIGHTTIME_THRESHOLD);
       }
 
       // update the headlights' view matrices
@@ -636,9 +641,12 @@ int main(int argc, char** argv) {
             glUseProgram(0);
          }
       }
+
       lamps.setUserSwitch(lampUserState);
       lampState = lamps.isOn();
-      
+      headlights.setUserSwitch(headlightUserState);
+      headlightState = headlights.isOn();
+
       // update the sun's uniform in the depth and world shaders
       sunProjector.setDirection(r.sunlight_direction());
       

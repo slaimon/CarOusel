@@ -13,6 +13,9 @@ class Headlights {
       glm::mat4 carToWorld;
       std::vector<HeadlightProjector> projector;
 
+      bool sunlightSwitchState;
+      bool userSwitchState;
+
       void updateLightMatrix() {
          lightMatrix[0] = projector[0].lightMatrix();
          lightMatrix[1] = projector[1].lightMatrix();
@@ -36,6 +39,8 @@ class Headlights {
          projector.emplace_back(shadowmap_size, glm::translate(glm::vec3(0.45f, 0.5f, -1.25f))*R, projMatrix);
          projector.emplace_back(shadowmap_size, glm::translate(glm::vec3(-0.45f, 0.5f, -1.25f))*R, projMatrix);
 
+         sunlightSwitchState = false;
+         userSwitchState = false;
          updatePosition();
       }
 
@@ -80,5 +85,22 @@ class Headlights {
       int getTextureID(int i) {
          assert(i == 0 || i == 1);
          return projector[i].getTextureID();
+      }
+
+      // set the lamp status according to the current sun position
+      void setSunlightSwitch(glm::vec3 sunlight_direction, float nighttime_threshold = 0.15f) {
+         if (dot(normalize(sunlight_direction), glm::vec3(0.f, 1.f, 0.f)) <= nighttime_threshold)
+            sunlightSwitchState = true;
+         else
+            sunlightSwitchState = false;
+      }
+
+      // set the user-defined lamp status
+      void setUserSwitch(bool state) {
+         userSwitchState = state;
+      }
+
+      bool isOn() {
+         return userSwitchState || sunlightSwitchState;
       }
 };
