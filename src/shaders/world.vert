@@ -9,6 +9,9 @@ layout (location = 4) in vec2 aTexCoord;
 #define NUM_LAMPS         19
 #define NUM_ACTIVE_LAMPS   3
 
+// headlights parameters
+#define NUM_CARS     1
+
 
 /*   ------   OUTPUTS   ------   */
 
@@ -21,18 +24,26 @@ out vec2 vTexCoord;
 out vec3 vSunWS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
+out vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
 
+uniform float uDrawShadows;
+
 // coordinates of the lights in worldspace
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uSunDirection;
+
+// lights' activation state
+uniform float uSunState;
 uniform float uLampState;
+uniform float uHeadlightState;
 
 // light matrices
 uniform mat4 uLampMatrix[NUM_LAMPS];
 uniform mat4 uSunMatrix;
+uniform mat4 uHeadlightMatrix[2*NUM_CARS];
 
 // render mode
 uniform int uMode;
@@ -61,18 +72,30 @@ vec3 computeLightPosWS (vec4 vPosLS) {
 
 
 void main(void) {
-   if (uLampState == 1.0) {
+   
+   // textured flat shading
+   if (uMode == 0)
+      vTexCoord = aTexCoord;
+   
+   // sun position in light-space and world-space
+   if (uSunState == 1.0) {
+      vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
+      vSunWS = computeLightPosWS(vPosSunLS);
+   }
+   
+   // shadow mapping for lamps
+   if (uDrawShadows == 1.0 && uLampState == 1.0) {
       for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
-		 vPosLampLS[i] = (uLampMatrix[i]*uModel*vec4(aPosition, 1.0));
+         vPosLampLS[i] = uLampMatrix[i] * uModel * vec4(aPosition, 1.0);
       }
    }
    
-   if (uMode == 0)   // textured flat shading
-      vTexCoord = aTexCoord;
-   
-   // shadow mapping computations
-   vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
-   vSunWS = computeLightPosWS(vPosSunLS);
+   // projective texturing for headlights
+   if (uHeadlightState == 1.0) {
+      for (int i = 0; i < 2*NUM_CARS; ++i) {
+         vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+      }
+   }
 
    // vertex computations
    vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;

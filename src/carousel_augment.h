@@ -5,8 +5,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
-#include "../common/carousel/carousel.h"
 #include "../common/renderable.h"
+#include "../common/carousel/carousel.h"
+#include "../common/carousel/carousel_to_renderable.h"
 
 #define N_GROUND_TILES 20.0   // the terrain is covered with 20^2 tiles
 
@@ -82,14 +83,27 @@ inline std::vector<GLfloat> generateTerrainTextureCoords(terrain t) {
     return v;
 }
 
-inline glm::vec3 getTerrainVertex(terrain t, const unsigned int i, const unsigned int j) {
+inline float getTerrainHeight(terrain t, const unsigned int i, const unsigned int j) {
     const unsigned int& Z = static_cast<unsigned int>(t.size_pix[1]);
     const unsigned int& X = static_cast<unsigned int>(t.size_pix[0]);
 
     float x = t.rect_xz[0] + (i / float(X)) * t.rect_xz[2];
     float z = t.rect_xz[1] + (j / float(Z)) * t.rect_xz[3];
 
-    return glm::vec3(x, t.hf((i >= X) ? (X - 1) : (i), (j >= Z) ? (Z - 1) : (j)), z);
+    return t.hf((i >= X) ? (X - 1) : (i), (j >= Z) ? (Z - 1) : (j));
+}
+
+inline glm::vec3 computeVertexNormal(terrain t, unsigned int ix, unsigned int iz) {
+   float hL = getTerrainHeight(t, ix - 1, iz);
+   float hR = getTerrainHeight(t, ix + 1, iz);
+   float hD = getTerrainHeight(t, ix, iz - 1);
+   float hU = getTerrainHeight(t, ix, iz + 1);
+
+   glm::vec3 n;
+   n.x = hL - hR;
+   n.z = hD - hU;
+   n.y = 2.0f;
+   return glm::normalize(n);
 }
 
 inline void generateTerrainVertexNormals(terrain t, renderable& r) {
@@ -99,9 +113,7 @@ inline void generateTerrainVertexNormals(terrain t, renderable& r) {
     std::vector<float> normals;
     for (unsigned int iz = 0; iz < Z; ++iz) {
         for (unsigned int ix = 0; ix < X; ++ix) {
-            glm::vec3 V = getTerrainVertex(t, ix + 1, iz) - getTerrainVertex(t, ix, iz);
-            glm::vec3 U = getTerrainVertex(t, ix, iz + 1) - getTerrainVertex(t, ix, iz);
-            pushVec3ToBuffer(normals, glm::normalize(glm::cross(U, V)));
+           pushVec3ToBuffer(normals, computeVertexNormal(t, ix, iz));
         }
     }
 
@@ -111,7 +123,7 @@ inline void generateTerrainVertexNormals(terrain t, renderable& r) {
 inline void generateTrackVertexNormals(track t, renderable& r) {
     unsigned int size = t.curbs[0].size();
 
-    std::vector<float> normals(2 * 3 * size);
+    std::vector<float> normals;
     for (unsigned int i = 0; i < size; ++i) {
         glm::vec3 V0 = t.curbs[0][(i + 1) % size] - t.curbs[0][i];
         glm::vec3 V1 = t.curbs[1][(i + 1) % size] - t.curbs[0][i];
@@ -122,4 +134,31 @@ inline void generateTrackVertexNormals(track t, renderable& r) {
     }
 
     r.add_vertex_attribute<float>(&normals[0], 2 * 3 * size, 2, 3);
+}
+
+void inline prepareTrack(race r, renderable& r_track) {
+   std::cout << "Generating track..." << std::endl;
+
+   r_track.create();
+   game_to_renderable::to_track(r, r_track);
+
+   std::vector<GLuint> trackTriangles = generateTrackTriangles(r.t().curbs[0].size());
+   r_track.add_indices<GLuint>(&trackTriangles[0], (unsigned int)trackTriangles.size(), GL_TRIANGLES);
+
+   std::vector<GLfloat> trackTextureCoords = generateTrackTextureCoords(r.t());
+   r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
+
+   generateTrackVertexNormals(r.t(), r_track);
+}
+
+void inline prepareTerrain(race r, renderable& r_terrain) {
+   std::cout << "Generating terrain..." << std::endl;
+
+   r_terrain.create();
+   game_to_renderable::to_heightfield(r, r_terrain);
+
+   std::vector<GLfloat> terrainTextureCoords = generateTerrainTextureCoords(r.ter());
+   r_terrain.add_vertex_attribute<GLfloat>(&terrainTextureCoords[0], terrainTextureCoords.size(), 4, 2);
+
+   generateTerrainVertexNormals(r.ter(), r_terrain);
 }

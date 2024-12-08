@@ -5,25 +5,32 @@ out vec4 color;
 #define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
+#define HEADLIGHT_COLOR    vec3(1.00,1.00,0.00)
 
 // lamp group parameters
 #define NUM_LAMPS         19
 #define NUM_ACTIVE_LAMPS   3
 
 // positional lights attenuation coefficients
-#define ATTENUATION_C1  0.01
-#define ATTENUATION_C2  1.0
-#define ATTENUATION_C3  20.0
+#define ATTENUATION_C1  1.0
+#define ATTENUATION_C2  0.0
+#define ATTENUATION_C3  0.005
 
 // spotlight parameters
 #define SPOTLIGHT_DIRECTION   vec3(0.0, -1.0, 0.0)
 
+// headlights parameters
+#define NUM_CARS     1
+#define HEADLIGHT_SPREAD      0.1
+#define HEADLIGHT_SPREAD_SQRT sqrt(HEADLIGHT_SPREAD)
+
 // shadow mapping parameters
-#define BIAS_PCF_SUN   0.005
-#define BIAS_PCF_LAMP  0.001
-#define BIAS_A       0.01
-#define BIAS_MIN_E   0.001
-#define BIAS_MAX_E   0.2
+#define BIAS_PCF_SUN        0.005
+#define BIAS_PCF_LAMP       0.001
+#define BIAS_PCF_HEADLIGHT  0.001
+#define BIAS_A       0.0001
+#define BIAS_MIN_E   0.0001
+#define BIAS_MAX_E   0.001
 
 
 /*   ------   INPUTS   ------   */
@@ -34,30 +41,37 @@ in vec3 vNormalWS;
 in vec2 vTexCoord;
 
 // light coordinates
-in vec4 vPosSunLS;
 in vec3 vSunWS;
+in vec4 vPosSunLS;
 in vec4 vPosLampLS[NUM_LAMPS];
+in vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
 /*   ------   UNIFORMS   ------   */
 
-// coordinates of the lamps in world space
+// coordinates of the lights in world space
 uniform vec3 uSunDirection;
-uniform float uSunState;
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uLampDirection;
+uniform vec3 uHeadlightPos[2*NUM_CARS];
+
+// lights' activation state
+uniform float uSunState;
+uniform float uLampState;
+uniform float uHeadlightState;
 
 // lamp parameters
-uniform float uLampState;
 uniform float uLampAngleIn;
 uniform float uLampAngleOut;
 
 // shadow maps
 uniform float uDrawShadows;
-uniform int uSunShadowmapSize;
 uniform sampler2D uSunShadowmap;
+uniform int uSunShadowmapSize;
 uniform sampler2D uLampShadowmaps[NUM_LAMPS];
 uniform int uLampShadowmapSize;
+uniform sampler2D uHeadlightShadowmap[2*NUM_CARS];
+uniform int uHeadlightShadowmapSize;
 
 // rendering mode
 uniform int uMode;
@@ -108,39 +122,75 @@ float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
       return 0.0;
 }
 
-float attenuation(vec3 lightPos, vec3 surfacePos) {
-   float d = length(lightPos-surfacePos);
-   
+float headlightIntensity(int i) {
+	if (vPosHeadlightLS[i].w < 0.0)
+       return 0.0;
+	vec2 texcoords = (vPosHeadlightLS[i]/vPosHeadlightLS[i].w).xy;
+	float d = length(texcoords);
+    if (d > 1.0)
+      return 0.0;
+	if (d <= HEADLIGHT_SPREAD_SQRT)
+	   return 1.0;
+	else
+	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
+}
+
+float attenuation(float d) {
    return min(1.0, 1.0/(ATTENUATION_C1+d*ATTENUATION_C2+d*d*ATTENUATION_C3));
 }
 
-float isLit(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap) {
+float isLitBySunPCF(vec3 N) {
    if (uDrawShadows == 0.0)
       return 1.0;
-
-   float bias = clamp(BIAS_A*tanacos(dot(N,L)), BIAS_MIN_E, BIAS_MAX_E);
-   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
-   if (pLS.y < 0.0 || pLS.x > 1.0 || pLS.y < 0.0 || pLS.y > 1.0)
-      return 0.0;
-   float depth = unpack(texture(shadowmap,pLS.xy));
-   
-   return ((depth + bias < pLS.z) ? (0.0) : (1.0));
-}
-
-float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSize, float bias) {
-   if (uDrawShadows == 0.0)
-      return 1.0;
-   // the pixel is in shadow if the normal points away from the light source
-   if (dot(normalize(L), normalize(N)) < 0.0)
-      return 0.0;
-
+	  
+   vec4 pLS = (vPosSunLS/vPosSunLS.w)*0.5+0.5;
    float storedDepth;
    float lit = 1.0;
-   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
    
    for(float x = 0.0; x < 5.0; x+=1.0) {
       for(float y = 0.0; y < 5.0; y+=1.0) {
-         storedDepth =  unpack(texture(shadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/shadowmapSize));
+         storedDepth = unpack(texture(uSunShadowmap, pLS.xy + vec2(-2.0+x,-2.0+y)/uSunShadowmapSize));
+         if(storedDepth + BIAS_PCF_SUN < pLS.z )    
+            lit  -= 1.0/25.0;
+      }
+   }
+   
+   return lit;
+}
+
+float isLitByLampPCF(int i, vec3 N) {
+   if (uDrawShadows == 0.0)
+   return 1.0;
+	  
+   vec4 pLS = (vPosLampLS[i]/vPosLampLS[i].w)*0.5+0.5;
+   float storedDepth;
+   float lit = 1.0;
+   
+   for(float x = 0.0; x < 5.0; x+=1.0) {
+      for(float y = 0.0; y < 5.0; y+=1.0) {
+         storedDepth = unpack(texture(uLampShadowmaps[i], pLS.xy + vec2(-2.0+x,-2.0+y)/uLampShadowmapSize));
+         if(storedDepth + BIAS_PCF_LAMP < pLS.z )    
+            lit  -= 1.0/25.0;
+      }
+   }
+   
+   return lit;
+}
+
+// use slope bias, as headlights are very close to the ground.
+float isLitByHeadlightPCF(int i, vec3 N) {
+   if (uDrawShadows == 0.0)
+      return 1.0;
+	  
+   vec4 posLS = vPosHeadlightLS[i];
+   vec4 pLS = (posLS/posLS.w)*0.5+0.5;
+   float storedDepth;
+   float lit = 1.0;
+   
+   float bias = clamp(BIAS_A*tanacos(dot(N,normalize(uHeadlightPos[i]))), BIAS_MIN_E, BIAS_MAX_E);
+   for(float x = 0.0; x < 5.0; x+=1.0) {
+      for(float y = 0.0; y < 5.0; y+=1.0) {
+         storedDepth = unpack(texture(uHeadlightShadowmap[i], pLS.xy + vec2(-2.0+x,-2.0+y)/uHeadlightShadowmapSize));
          if(storedDepth + bias < pLS.z )    
             lit  -= 1.0/25.0;
       }
@@ -149,14 +199,13 @@ float isLitPCF(vec3 L, vec3 N, vec4 posLS, sampler2D shadowmap, int shadowmapSiz
    return lit;
 }
 
+
 void main(void) { 
    vec3 surfaceNormal;
    vec4 diffuseColor;
+   
    float sunIntensityDiff;
    float sunIntensitySpec = 0.0;
-   float lampsIntensity = 0.0;
-   vec4 lampsContrib;
-   vec4 sunContrib;
    
    // textured flat shading
    if (uMode == 0) {
@@ -185,24 +234,40 @@ void main(void) {
       diffuseColor = vec4(uColor,1.0);
    }
    
-   float spotint, lit = 1.0;
-   uint j;
-   if (uLampState == 1.0) {
-      for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
-	     // if the fragment is outside this lamp's light cone, skip all calculations
-	     spotint = spotlightIntensity(uLamps[i], vPosWS);
+   vec4 lampsContrib = vec4(0.0);
+   vec4 headlightContrib = vec4(0.0);
+   vec4 sunContrib = vec4(0.0);
+   
+   if(uLampState == 1.0) {
+	  float lampsIntensity = 0.0;
+	  for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
+		 // if the fragment is outside this lamp's light cone, skip all calculations
+		 float spotint = spotlightIntensity(uLamps[i], vPosWS);
 		 if (spotint == 0.0)
 		    continue;
 
-         lampsIntensity += spotint * isLitPCF(normalize(uLamps[i] - vPosWS), surfaceNormal, vPosLampLS[i], uLampShadowmaps[i], uLampShadowmapSize, BIAS_PCF_LAMP);
+         lampsIntensity += spotint * isLitByLampPCF(i, surfaceNormal);
       }
       lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
-   
+
    if (uSunState == 1.0) {
-      sunContrib = sunlightColor() * (sunIntensityDiff + sunIntensitySpec) *
-	               isLitPCF(vSunWS, surfaceNormal, vPosSunLS, uSunShadowmap, uSunShadowmapSize, BIAS_PCF_SUN);
+      sunContrib = sunlightColor() *
+	               isLitBySunPCF(surfaceNormal) *
+	               (sunIntensityDiff + sunIntensitySpec);
    }
-   
-   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib), 0.0, 1.0);
+   if (uHeadlightState == 1.0) {
+	  float headlightintensity = 0.0;
+	  for (int i = 0; i < 2*NUM_CARS; ++i) {
+		 // if the fragment is outside this headlight's light cone, skip all calculations
+		 float headint = headlightIntensity(i);
+		 if (headint == 0.0)
+			continue;
+		 headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
+							   isLitByHeadlightPCF(i, surfaceNormal);
+	   }
+	   headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * headlightintensity;
+   }
+
+   color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
 } 

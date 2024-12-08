@@ -12,7 +12,7 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Press **Q** to toggle shadows and **K** to toggle sunlight.
 
-- Press **L** to toggle the lamps. During the night they turn on automatically.
+- Press **L** to toggle the lamps and **J** to toggle the cars' headlights. During the night they will turn on automatically.
 
 - Press **T** to stop the sun and the cars from moving. When you press T again, they will skip ahead to where they would've been.
 
@@ -28,7 +28,7 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Shadow mapping to cast shadows from the sun, with tight frustum fitting to avoid precision loss at shallow angles 
 
-- The lamps turn on automatically at night, casting real-time shadows
+- The street lamps and headlights turn on automatically at night, casting real-time shadows with Percentage Closer Filtering (PCF) and slope bias.
 
 ### Dependencies
 
