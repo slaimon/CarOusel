@@ -203,11 +203,9 @@ float isLitByHeadlightPCF(int i, vec3 N) {
 void main(void) { 
    vec3 surfaceNormal;
    vec4 diffuseColor;
+   
    float sunIntensityDiff;
    float sunIntensitySpec = 0.0;
-   float lampsIntensity = 0.0;
-   vec4 lampsContrib;
-   vec4 sunContrib;
    
    // textured flat shading
    if (uMode == 0) {
@@ -236,10 +234,15 @@ void main(void) {
       diffuseColor = vec4(uColor,1.0);
    }
    
-   if (uLampState == 1.0) {
-      for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
-	     // if the fragment is outside this lamp's light cone, skip all calculations
-	     float spotint = spotlightIntensity(uLamps[i], vPosWS);
+   vec4 lampsContrib = vec4(0.0);
+   vec4 headlightContrib = vec4(0.0);
+   vec4 sunContrib = vec4(0.0);
+   
+   if(uLampState == 1.0) {
+	  float lampsIntensity = 0.0;
+	  for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
+		 // if the fragment is outside this lamp's light cone, skip all calculations
+		 float spotint = spotlightIntensity(uLamps[i], vPosWS);
 		 if (spotint == 0.0)
 		    continue;
 
@@ -247,25 +250,24 @@ void main(void) {
       }
       lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
    }
-   
+
    if (uSunState == 1.0) {
       sunContrib = sunlightColor() *
 	               isLitBySunPCF(surfaceNormal) *
 	               (sunIntensityDiff + sunIntensitySpec);
    }
-   
-   float headlightintensity = 0.0;
    if (uHeadlightState == 1.0) {
-	   for (int i = 0; i < 2*NUM_CARS; ++i) {
-		  // if the fragment is outside this headlight's light cone, skip all calculations
-		  float headint = headlightIntensity(i);
-		  if (headint == 0.0)
-			 continue;
-		  headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
-								isLitByHeadlightPCF(i, surfaceNormal);
+	  float headlightintensity = 0.0;
+	  for (int i = 0; i < 2*NUM_CARS; ++i) {
+		 // if the fragment is outside this headlight's light cone, skip all calculations
+		 float headint = headlightIntensity(i);
+		 if (headint == 0.0)
+			continue;
+		 headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
+							   isLitByHeadlightPCF(i, surfaceNormal);
 	   }
+	   headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * headlightintensity;
    }
-   vec4 headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * headlightintensity;
-   
+
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
 } 

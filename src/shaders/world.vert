@@ -29,6 +29,8 @@ out vec4 vPosHeadlightLS[2*NUM_CARS];
 
 /*   ------   UNIFORMS   ------   */
 
+uniform float uDrawShadows;
+
 // coordinates of the lights in worldspace
 uniform vec3 uLamps[NUM_LAMPS];
 uniform vec3 uSunDirection;
@@ -70,24 +72,29 @@ vec3 computeLightPosWS (vec4 vPosLS) {
 
 
 void main(void) {
-   if (uLampState == 1.0) {
-      for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
-		 vPosLampLS[i] = (uLampMatrix[i]*uModel*vec4(aPosition, 1.0));
-      }
-   }
    
-   if (uMode == 0)   // textured flat shading
+   // textured flat shading
+   if (uMode == 0)
       vTexCoord = aTexCoord;
    
-   // shadow mapping computations
-   vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
-   vSunWS = computeLightPosWS(vPosSunLS);
+   // sun position in light-space and world-space
+   if (uSunState == 1.0) {
+      vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
+      vSunWS = computeLightPosWS(vPosSunLS);
+   }
    
-   // projective texturing
-   if (uHeadlightState == 1.0) {
-	   for (int i = 0; i < 2*NUM_CARS; ++i) {
-		  vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
-	   }
+   // shadow mapping computations
+   if (uDrawShadows == 1.0) {
+      if (uLampState == 1.0) {
+         for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
+	       vPosLampLS[i] = uLampMatrix[i] * uModel * vec4(aPosition, 1.0);
+         }
+      }
+      if (uHeadlightState == 1.0) {
+	     for (int i = 0; i < 2*NUM_CARS; ++i) {
+		    vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+	      }
+      }
    }
 
    // vertex computations
