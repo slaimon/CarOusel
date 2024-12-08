@@ -64,15 +64,15 @@ int height = 900;
 // determines the time of day the lights should turn on/off
 // insert the angular distance of the Sun above the horizon
 #define LAMP_NIGHTTIME_THRESHOLD         20.0
-#define HEADLIGHT_NIGHTTIME_THRESHOLD     0.0
+#define HEADLIGHT_NIGHTTIME_THRESHOLD    10.0
 
 float lamp_nighttime = glm::cos(glm::radians(90.0 - LAMP_NIGHTTIME_THRESHOLD));
 float headlight_nighttime = glm::cos(glm::radians(90.0 - HEADLIGHT_NIGHTTIME_THRESHOLD));
 
 // shadowmap sizes
 #define SUN_SHADOWMAP_SIZE         2048u
-#define LAMP_SHADOWMAP_SIZE         512u
-#define HEADLIGHT_SHADOWMAP_SIZE    512u
+#define LAMP_SHADOWMAP_SIZE        1024u
+#define HEADLIGHT_SHADOWMAP_SIZE   1024u
 
 // textures and shading
 typedef enum shadingMode {
@@ -706,7 +706,7 @@ int main(int argc, char** argv) {
          }
 
          // show the sun's shadow map
-         if (drawShadows && daytime) {
+         if (drawShadows && sunState && daytime) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
             draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
