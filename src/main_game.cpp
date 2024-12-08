@@ -686,21 +686,24 @@ int main(int argc, char** argv) {
       
 
       if (debugView) {
+         draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
+         draw_bbox(bbox_scene, COLOR_BLACK);
+         draw_sunDirection(r.sunlight_direction());
+
          if (lampState)
             for (unsigned int i = 0; i < numActiveLamps; ++i)
                draw_frustum(lamps.getLightMatrix(i), COLOR_YELLOW);
 
-         draw_frustum(sunProjector.lightMatrix(), COLOR_WHITE);
-         draw_frustum(headlights.getMatrix(0), COLOR_RED);
-         draw_frustum(headlights.getMatrix(1), COLOR_RED);
-         draw_bbox(bbox_scene, COLOR_BLACK);
-         draw_sunDirection(r.sunlight_direction());
+         if (headlightState) {
+            draw_frustum(headlights.getMatrix(0), COLOR_RED);
+            draw_frustum(headlights.getMatrix(1), COLOR_RED);
+         }
 
-         // show the shadow map
-         if (drawShadows) {
+         // show the sun's shadow map
+         if (drawShadows && sunState) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
-            draw_texture(headlights.getTextureID(0), texture_slots_cars[0]);
+            draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
             glEnable(GL_DEPTH_TEST);
             glViewport(0, 0, width, height);
          }
