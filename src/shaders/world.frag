@@ -2,7 +2,7 @@
 out vec4 color;
 
 // light colors
-#define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.20
+#define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.35
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
 #define HEADLIGHT_COLOR    vec3(1.00,1.00,0.00)
