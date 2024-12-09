@@ -264,7 +264,8 @@ public:
 	/**
 	 * update the carousel. Call this at the beginning of any render cycle
 	 * */
-	void update() {
+	void update(unsigned int pause_length=0) {
+		clock_start += pause_length;
 		int cs = clock() - clock_start;
 		for (size_t i = 0; i < _cars.size();++i) {
 			int ii = ((int)((cs) / 1000.f * 30.f)+ _cars[i].delta_i) % carpaths[_cars[i].id_path].frames.size();

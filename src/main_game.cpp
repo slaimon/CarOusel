@@ -32,6 +32,7 @@
 #include "headlights.h"
 #include "projector.h"
 #include "lamps.h"
+#include "stopwatch.h"
 
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -196,6 +197,8 @@ void processInput(GLFWwindow* window, terrain t) {
    }
 }
 
+Stopwatch pause;
+unsigned int pauseLength = 0;
 void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
    if (action == GLFW_PRESS && ((mods & GLFW_MOD_CONTROL)==0)) {
       switch (key) {
@@ -215,7 +218,14 @@ void keyboard_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
          
          case GLFW_KEY_T:
-            timeStep = !timeStep;
+            if (timeStep) {
+               timeStep = false;
+               pause.start();
+            }
+            else {
+               timeStep = true;
+               pauseLength = pause.end();
+            }
             break;
          
          case GLFW_KEY_L:
@@ -626,7 +636,8 @@ int main(int argc, char** argv) {
       check_gl_errors(__LINE__, __FILE__);
       
       if (timeStep) {
-         r.update();
+         r.update(pauseLength);
+         pauseLength = 0;
          lamps.setSunlightSwitch(r.sunlight_direction(), lamp_nighttime);
          headlights.setSunlightSwitch(r.sunlight_direction(), headlight_nighttime);
          daytime = isDaytime(r.sunlight_direction());

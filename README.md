@@ -14,7 +14,7 @@ It consists of a freely explorable scene with cars running around a track.
 
 - Press **L** to toggle the lamps and **J** to toggle the cars' headlights. During the night they will turn on automatically.
 
-- Press **T** to stop the sun and the cars from moving. When you press T again, they will skip ahead to where they would've been.
+- Press **T** to stop time.
 
 - Press **C** to cycle between the available cameras.
 
