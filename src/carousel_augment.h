@@ -5,9 +5,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
-#include "../common/renderable.h"
-#include "../common/carousel/carousel.h"
-#include "../common/carousel/carousel_to_renderable.h"
+#include "common/renderable.h"
+#include "common/carousel/carousel.h"
+#include "common/carousel/carousel_to_renderable.h"
 
 #define N_GROUND_TILES 20.0   // the terrain is covered with 20^2 tiles
 

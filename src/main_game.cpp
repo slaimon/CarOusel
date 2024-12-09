@@ -10,21 +10,21 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "../common/debugging.h"
-#include "../common/renderable.h"
-#include "../common/shaders.h"
-#include "../common/simple_shapes.h"
-#include "../common/matrix_stack.h"
+#include "common/debugging.h"
+#include "common/renderable.h"
+#include "common/shaders.h"
+#include "common/simple_shapes.h"
+#include "common/matrix_stack.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define TINYGLTF_IMPLEMENTATION
-#include "../common/gltf_loader.h"
-#include "../common/texture.h"
+#include "common/gltf_loader.h"
+#include "common/texture.h"
 
-#include "../common/carousel/carousel.h"
-#include "../common/carousel/carousel_to_renderable.h"
-#include "../common/carousel/carousel_loader.h"
+#include "common/carousel/carousel.h"
+#include "common/carousel/carousel_to_renderable.h"
+#include "common/carousel/carousel_loader.h"
 
 #include "carousel_augment.h"
 #include "camera_controls.h"

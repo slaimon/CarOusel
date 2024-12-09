@@ -3,9 +3,9 @@
 #include <glm/ext.hpp>
 
 #include "transformations.h"
-#include "../common/box3.h"
-#include "../common/texture.h"
-#include "../common/frame_buffer_object.h"
+#include "common/box3.h"
+#include "common/texture.h"
+#include "common/frame_buffer_object.h"
 
 // Abstract Class; represents a light capable of casting shadows
 class Projector {

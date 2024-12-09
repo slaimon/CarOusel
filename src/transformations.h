@@ -4,8 +4,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
-#include "../common/box3.h"
-#include "../common/carousel/carousel.h"
+#include "common/box3.h"
+#include "common/carousel/carousel.h"
 
 // returns a vector containing the 8 corners of a box3 object
 inline std::vector<glm::vec4> getBoxCorners(box3 box) {
