@@ -37,12 +37,10 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 
-#define BASE_DIR    std::string("./")
-#define ASSETS_DIR  BASE_DIR + "assets/"
-
-std::string shaders_path = BASE_DIR + "shaders/";
-std::string textures_path = ASSETS_DIR + "textures/";
-std::string models_path = ASSETS_DIR + "models/";
+std::string shaders_path("shaders/");
+std::string assets_path("assets/");
+std::string textures_path = assets_path + "textures/";
+std::string models_path = assets_path + "models/";
 
 int width = 1440;
 int height = 900;
@@ -500,7 +498,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
 
 
 int main(int argc, char** argv) {
-   carousel_loader::load((ASSETS_DIR + "small_test.svg").c_str(), (ASSETS_DIR + "terrain_256.png").c_str(), r);
+   carousel_loader::load((assets_path + "small_test.svg").c_str(), (assets_path + "terrain_256.png").c_str(), r);
    
    for (int i = 0; i < CARS_NUM; ++i)
       r.add_car();
