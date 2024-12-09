@@ -632,43 +632,23 @@ int main(int argc, char** argv) {
          daytime = isDaytime(r.sunlight_direction());
       }
 
-      // update the headlights' view matrices
-      headlights.setCarFrame(r.cars()[0].frame);
-
-         glUseProgram(shader_world.program);
-         headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");
-         headlights.updatePositionUniformArray(shader_world, "uHeadlightPos");
-
-      // draw the headlights' shadowmaps
-      if (headlightState && drawShadows) {
-         for (int i = 0; i < 2; ++i) {
-            glUseProgram(shader_depth.program);
-            headlights.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
-            headlights.bindFramebuffer(i);
-            headlights.bindTexture(i, texture_slots_cars[i]);
-            draw_scene(stack, true);
-            glUseProgram(0);
-         }
-      }
-
       lamps.setUserSwitch(lampUserState);
       lampState = lamps.isOn();
       headlights.setUserSwitch(headlightUserState);
       headlightState = headlights.isOn();
 
-      // update the sun's uniform in the depth and world shaders
+      // update the sun's uniforms
       sunProjector.setDirection(r.sunlight_direction());
-      
-         glUseProgram(shader_depth.program);
-         sunProjector.updateLightMatrixUniform(shader_depth, "uLightMatrix");
-         sunProjector.bindFramebuffer();
 
-         glUseProgram(shader_world.program);
-         sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
-         sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
+      glUseProgram(shader_world.program);
+      sunProjector.updateLightDirectionUniform(shader_world, "uSunDirection");
+      sunProjector.updateLightMatrixUniform(shader_world, "uSunMatrix");
       
       // draw the sun's shadowmap
       if (sunState && drawShadows && daytime) {
+         glUseProgram(shader_depth.program);
+         sunProjector.updateLightMatrixUniform(shader_depth, "uLightMatrix");
+         sunProjector.bindFramebuffer();
          sunProjector.bindTexture(TEXTURE_SHADOWMAP_SUN);
          draw_scene(stack, true);
       }
@@ -683,6 +663,25 @@ int main(int argc, char** argv) {
             draw_scene(stack, true);
          }
          glUseProgram(0);
+      }
+
+      // update the headlights' uniforms
+      headlights.setCarFrame(r.cars()[0].frame);
+
+      glUseProgram(shader_world.program);
+      headlights.updateLightMatrixUniformArray(shader_world, "uHeadlightMatrix");
+      headlights.updatePositionUniformArray(shader_world, "uHeadlightPos");
+
+      // draw the headlights' shadowmaps
+      if (headlightState && drawShadows) {
+         for (int i = 0; i < 2; ++i) {
+            glUseProgram(shader_depth.program);
+            headlights.updateLightMatrixUniform(i, shader_depth, "uLightMatrix");
+            headlights.bindFramebuffer(i);
+            headlights.bindTexture(i, texture_slots_cars[i]);
+            draw_scene(stack, true);
+            glUseProgram(0);
+         }
       }
 
       // draw the screen buffer
