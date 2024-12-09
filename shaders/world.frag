@@ -36,11 +36,11 @@ out vec4 color;
 
 // interpolated vertex attributes
 in vec3 vPosWS;
+in vec3 vPosVS;
 in vec3 vNormalWS;
 in vec2 vTexCoord;
 
 // light coordinates
-in vec3 vSunWS;
 in vec4 vPosSunLS;
 in vec4 vPosLampLS[NUM_LAMPS];
 in vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -209,7 +209,7 @@ void main(void) {
    // textured flat shading
    if (uMode == 0) {
       surfaceNormal = normalize(cross(dFdx(vPosWS),dFdy(vPosWS)));
-      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
+      sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome flat shading
@@ -221,15 +221,15 @@ void main(void) {
    // textured phong shading
    if (uMode == 2) {
       surfaceNormal = vNormalWS;
-      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
-      sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
+      sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
+      sunIntensitySpec = specularIntensity(uSunDirection, surfaceNormal, normalize(-vPosVS));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
    if (uMode == 3) {
       surfaceNormal = vNormalWS;
-      sunIntensityDiff = diffuseIntensity(vSunWS, surfaceNormal);
-      sunIntensitySpec = specularIntensity(vSunWS, surfaceNormal, normalize(-vPosWS));
+      sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
+      sunIntensitySpec = specularIntensity(uSunDirection, surfaceNormal, normalize(-vPosVS));
       diffuseColor = vec4(uColor,1.0);
    }
    

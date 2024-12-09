@@ -17,11 +17,11 @@ layout (location = 4) in vec2 aTexCoord;
 
 // transformed vertex attributes
 out vec3 vPosWS;
+out vec3 vPosVS;
 out vec3 vNormalWS;
 out vec2 vTexCoord;
 
 // light coordinates
-out vec3 vSunWS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
 out vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -54,33 +54,15 @@ uniform mat4 uModel;
 uniform mat4 uProj;
 
 
-vec3 computeLightPosWS (vec4 vPosLS) {
-   mat4 invSunMatrix = inverse(uSunMatrix);
-   
-   vec4 vPosLS_NDC = (vPosLS/vPosLS.w);
-   vec4 far = vec4(vPosLS_NDC.xy, 1,1.0);
-   vec4 near = vec4(vPosLS_NDC.xy,-1,1.0);
-
-   vec4 farWS = invSunMatrix * far;
-   farWS /= farWS.w;
-
-   vec4 nearWS = invSunMatrix * near;
-   nearWS /= nearWS.w;
-   
-   return normalize((nearWS-farWS).xyz);
-}
-
-
 void main(void) {
    
    // textured flat shading
    if (uMode == 0)
       vTexCoord = aTexCoord;
    
-   // sun position in light-space and world-space
-   if (uSunState == 1.0) {
+   // sun position in light-space
+   if (uDrawShadows == 1.0 && uSunState == 1.0) {
       vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
-      vSunWS = computeLightPosWS(vPosSunLS);
    }
    
    // shadow mapping for lamps
@@ -101,5 +83,6 @@ void main(void) {
    vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;
    vec4 pws = (uModel*vec4(aPosition,1.0));
    vPosWS = pws.xyz;
+   vPosVS = (uView * pws).xyz;
    gl_Position = uProj*uView*pws;
 }
