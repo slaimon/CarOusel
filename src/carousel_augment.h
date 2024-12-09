@@ -100,10 +100,10 @@ inline glm::vec3 computeVertexNormal(terrain t, unsigned int ix, unsigned int iz
    float hU = getTerrainHeight(t, ix, iz + 1);
 
    glm::vec3 n;
-   n.x = hL - hR;
-   n.z = hD - hU;
-   n.y = 2.0f;
-   return glm::normalize(n);
+   n.x = (hL - hR) / 2.f;
+   n.z = (hD - hU) / 2.f;
+   n.y = 1.0f;
+   return n;
 }
 
 inline void generateTerrainVertexNormals(terrain t, renderable& r) {
