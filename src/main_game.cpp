@@ -37,11 +37,12 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 
-#define BASE_DIR std::string("C:/Users/Slaimon/Desktop/unipi/CG/CarOusel/")
+#define BASE_DIR    std::string("./")
+#define ASSETS_DIR  BASE_DIR + "assets/"
 
-std::string shaders_path = BASE_DIR + "src/shaders/";
-std::string textures_path = BASE_DIR + "src/assets/textures/";
-std::string models_path = BASE_DIR + "src/assets/models/";
+std::string shaders_path = BASE_DIR + "shaders/";
+std::string textures_path = ASSETS_DIR + "textures/";
+std::string models_path = ASSETS_DIR + "models/";
 
 int width = 1440;
 int height = 900;
@@ -499,9 +500,9 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
 
 
 int main(int argc, char** argv) {
-   carousel_loader::load((BASE_DIR + "src/small_test.svg").c_str(), (BASE_DIR + "src/terrain_256.png").c_str(), r);
+   carousel_loader::load((ASSETS_DIR + "small_test.svg").c_str(), (ASSETS_DIR + "terrain_256.png").c_str(), r);
    
-   for (int i = 0; i < CARS_NUM; ++i)      
+   for (int i = 0; i < CARS_NUM; ++i)
       r.add_car();
 
    GLFWwindow* window;
