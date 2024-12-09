@@ -100,11 +100,11 @@ float diffuseIntensity(vec3 L, vec3 N) {
 }
 
 float specularIntensity(vec3 L, vec3 N, vec3 V) {
-   float LN = diffuseIntensity(L,N);
-   //vec3 R = -L+2*dot(L,N)*N;      // Phong
-   vec3 H = normalize(L+V);         // Blinn-Phong
+   vec3 H = normalize(L+V);
+   float NL = dot(N,L);
+   float blinn = (NL <= 0) ? 0 : max(0, dot(N,H));
    
-   return uSpecular * ((LN>0.f)?1.f:0.f) * max(0.0,pow(dot(V,H),uShininess));
+   return uSpecular * pow(blinn,uShininess);
 }
 
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
