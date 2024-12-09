@@ -335,7 +335,7 @@ void draw_cars(shader sh, matrix_stack stack) {
       glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
       glUniform1f(sh["uShininess"], 75.f);
       glUniform1f(sh["uDiffuse"], 0.7f);
-      glUniform1f(sh["uSpecular"], 0.7f);
+      glUniform1f(sh["uSpecular"], 0.8f);
       drawLoadedModel(stack, model_car, bbox_car, sh);
       stack.pop();
    }

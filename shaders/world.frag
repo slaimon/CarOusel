@@ -43,9 +43,10 @@ in vec2 vTexCoord;
 
 // light coordinates
 in vec3 vSunVS;
+in vec3 vLampVS[NUM_ACTIVE_LAMPS];
 in vec3 vHeadlightVS[2*NUM_CARS];
 in vec4 vPosSunLS;
-in vec4 vPosLampLS[NUM_LAMPS];
+in vec4 vPosLampLS[NUM_ACTIVE_LAMPS];
 in vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
@@ -248,16 +249,18 @@ void main(void) {
    }
    
    if(uLampState == 1.0) {
-	  float lampsIntensity = 0.0;
+	  float lampsDiff = 0.0;
+	  float lampsSpec = 0.0;
 	  for (int i = 0; i < NUM_ACTIVE_LAMPS; ++i) {
 		 // if the fragment is outside this lamp's light cone, skip all calculations
 		 float spotint = spotlightIntensity(uLamps[i], vPosWS);
 		 if (spotint == 0.0)
 		    continue;
 
-         lampsIntensity += spotint * isLitByLampPCF(i, surfaceNormal);
+         lampsDiff += spotint * isLitByLampPCF(i, surfaceNormal);
+		 lampsSpec += specularIntensity(normalize(vLampVS[i]-vPosVS), vNormalVS, normalize(-vPosVS));
       }
-      lampsContrib = lampsIntensity * vec4(LAMPLIGHT_COLOR, 1.0);
+      lampsContrib = vec4(LAMPLIGHT_COLOR, 1.0) * (lampsDiff + lampsSpec);
    }
 
    if (uHeadlightState == 1.0) {

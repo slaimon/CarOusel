@@ -24,9 +24,10 @@ out vec2 vTexCoord;
 
 // light coordinates
 out vec3 vSunVS;
+out vec3 vLampVS[NUM_ACTIVE_LAMPS];
 out vec3 vHeadlightVS[2*NUM_CARS];
 out vec4 vPosSunLS;
-out vec4 vPosLampLS[NUM_LAMPS];
+out vec4 vPosLampLS[NUM_ACTIVE_LAMPS];
 out vec4 vPosHeadlightLS[2*NUM_CARS];
 
 
@@ -71,9 +72,14 @@ void main(void) {
    }
    
    // shadow mapping for lamps
-   if (uDrawShadows == 1.0 && uLampState == 1.0) {
+   if (uLampState == 1.0) {
       for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
-         vPosLampLS[i] = uLampMatrix[i] * pws;
+	     vLampVS[i] = (uView * vec4(uLamps[i], 1.0)).xyz;
+	  }
+      if (uDrawShadows == 1.0) {
+         for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
+            vPosLampLS[i] = uLampMatrix[i] * pws;
+         }
       }
    }
    
