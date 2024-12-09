@@ -98,9 +98,7 @@ class DirectionalProjector : public Projector {
          box3 aabb = transformBoundingBox(sceneBoundingBox, viewMatrix);
          
          // and that gives us the parameters of the light's view frustum
-         float farPlane = -std::min(aabb.max.z, aabb.min.z);
-         float nearPlane = -std::max(aabb.max.z, aabb.min.z);
-         projMatrix =  glm::ortho(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, nearPlane, farPlane);
+         projMatrix =  glm::ortho(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, -aabb.max.z, -aabb.min.z);
       }
 
    public:
