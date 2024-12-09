@@ -19,9 +19,11 @@ layout (location = 4) in vec2 aTexCoord;
 out vec3 vPosWS;
 out vec3 vPosVS;
 out vec3 vNormalWS;
+out vec3 vNormalVS;
 out vec2 vTexCoord;
 
 // light coordinates
+out vec3 vSunVS;
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
 out vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -55,6 +57,7 @@ uniform mat4 uProj;
 
 
 void main(void) {
+   vSunVS = (uView * vec4(uSunDirection, 1.0)).xyz;
    
    // textured flat shading
    if (uMode == 0)
@@ -80,8 +83,10 @@ void main(void) {
    }
 
    // vertex computations
-   vNormalWS = normalize(uModel*vec4(aNormal, 0.0)).xyz;
-   vec4 pws = (uModel*vec4(aPosition,1.0));
+   vec4 vws = uModel * vec4(aNormal, 0.0);
+   vNormalWS = normalize(vws).xyz;
+   vNormalVS = normalize(uView * vws).xyz;
+   vec4 pws = (uModel * vec4(aPosition,1.0));
    vPosWS = pws.xyz;
    vPosVS = (uView * pws).xyz;
    gl_Position = uProj*uView*pws;

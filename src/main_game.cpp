@@ -308,6 +308,9 @@ void draw_track(shader sh, matrix_stack stack) {
    glActiveTexture(GL_TEXTURE0 + TEXTURE_ROAD);
    glBindTexture(GL_TEXTURE_2D, texture_track_diffuse.id);
    glUniform1i(sh["uMode"], SHADING_TEXTURED_PHONG);
+   glUniform1f(sh["uShininess"], 50.f);
+   glUniform1f(sh["uDiffuse"], 0.8f);
+   glUniform1f(sh["uSpecular"], 0.5f);
    glUniform1i(sh["uColorImage"], TEXTURE_ROAD);
    glUniformMatrix4fv(sh["uModel"], 1, GL_FALSE, &stack.m()[0][0]);
    glDrawElements(r_track().mode, r_track().count, r_track().itype, 0);

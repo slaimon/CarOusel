@@ -38,9 +38,11 @@ out vec4 color;
 in vec3 vPosWS;
 in vec3 vPosVS;
 in vec3 vNormalWS;
+in vec3 vNormalVS;
 in vec2 vTexCoord;
 
 // light coordinates
+in vec3 vSunVS;
 in vec4 vPosSunLS;
 in vec4 vPosLampLS[NUM_LAMPS];
 in vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -104,7 +106,7 @@ float specularIntensity(vec3 L, vec3 N, vec3 V) {
    float NL = dot(N,L);
    float blinn = (NL <= 0) ? 0 : max(0, dot(N,H));
    
-   return uSpecular * pow(blinn,uShininess);
+   return uSpecular * pow(blinn, uShininess);
 }
 
 float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
@@ -222,14 +224,14 @@ void main(void) {
    if (uMode == 2) {
       surfaceNormal = vNormalWS;
       sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
-      sunIntensitySpec = specularIntensity(uSunDirection, surfaceNormal, normalize(-vPosVS));
+      sunIntensitySpec = specularIntensity(normalize(vSunVS-vPosVS), vNormalVS, normalize(-vPosVS));
       diffuseColor = texture2D(uColorImage,vTexCoord.xy);
    }
    // monochrome phong shading
    if (uMode == 3) {
       surfaceNormal = vNormalWS;
       sunIntensityDiff = diffuseIntensity(uSunDirection, surfaceNormal);
-      sunIntensitySpec = specularIntensity(uSunDirection, surfaceNormal, normalize(-vPosVS));
+      sunIntensitySpec = specularIntensity(normalize(vSunVS-vPosVS), vNormalVS, normalize(-vPosVS));
       diffuseColor = vec4(uColor,1.0);
    }
    
