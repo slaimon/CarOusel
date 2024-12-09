@@ -24,6 +24,7 @@ out vec2 vTexCoord;
 
 // light coordinates
 out vec3 vSunVS;
+out vec3 vHeadlightVS[2*NUM_CARS];
 out vec4 vPosSunLS;
 out vec4 vPosLampLS[NUM_LAMPS];
 out vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -57,28 +58,30 @@ uniform mat4 uProj;
 
 
 void main(void) {
-   vSunVS = (uView * vec4(uSunDirection, 1.0)).xyz;
+   vec4 pws = uModel * vec4(aPosition, 1.0);
    
    // textured flat shading
    if (uMode == 0)
       vTexCoord = aTexCoord;
    
    // sun position in light-space
+   vSunVS = (uView * vec4(uSunDirection, 1.0)).xyz;
    if (uDrawShadows == 1.0 && uSunState == 1.0) {
-      vPosSunLS = uSunMatrix * uModel * vec4(aPosition, 1.0);
+      vPosSunLS = uSunMatrix * pws;
    }
    
    // shadow mapping for lamps
    if (uDrawShadows == 1.0 && uLampState == 1.0) {
       for (int i = 0; i < NUM_ACTIVE_LAMPS; i++) {
-         vPosLampLS[i] = uLampMatrix[i] * uModel * vec4(aPosition, 1.0);
+         vPosLampLS[i] = uLampMatrix[i] * pws;
       }
    }
    
    // projective texturing for headlights
    if (uHeadlightState == 1.0) {
       for (int i = 0; i < 2*NUM_CARS; ++i) {
-         vPosHeadlightLS[i] = uHeadlightMatrix[i] * uModel * vec4(aPosition, 1.0);
+	     vHeadlightVS[i] = (uView * uHeadlightMatrix[i][3]).xyz;
+         vPosHeadlightLS[i] = uHeadlightMatrix[i] * pws;
       }
    }
 
@@ -86,7 +89,6 @@ void main(void) {
    vec4 vws = uModel * vec4(aNormal, 0.0);
    vNormalWS = normalize(vws).xyz;
    vNormalVS = normalize(uView * vws).xyz;
-   vec4 pws = (uModel * vec4(aPosition,1.0));
    vPosWS = pws.xyz;
    vPosVS = (uView * pws).xyz;
    gl_Position = uProj*uView*pws;

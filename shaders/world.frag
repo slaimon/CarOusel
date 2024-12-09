@@ -43,6 +43,7 @@ in vec2 vTexCoord;
 
 // light coordinates
 in vec3 vSunVS;
+in vec3 vHeadlightVS[2*NUM_CARS];
 in vec4 vPosSunLS;
 in vec4 vPosLampLS[NUM_LAMPS];
 in vec4 vPosHeadlightLS[2*NUM_CARS];
@@ -260,16 +261,18 @@ void main(void) {
    }
 
    if (uHeadlightState == 1.0) {
-	  float headlightintensity = 0.0;
+	  float headlightDiff = 0.0;
+	  float headlightSpec = 0.0;
 	  for (int i = 0; i < 2*NUM_CARS; ++i) {
 		 // if the fragment is outside this headlight's light cone, skip all calculations
 		 float headint = headlightIntensity(i);
 		 if (headint == 0.0)
 			continue;
-		 headlightintensity += headint * attenuation(vPosHeadlightLS[i].w) *
+		 headlightDiff += headint * attenuation(vPosHeadlightLS[i].w) *
 							   isLitByHeadlightPCF(i, surfaceNormal);
+		 headlightSpec += specularIntensity(normalize(vHeadlightVS[i]-vPosVS), vNormalVS, normalize(-vPosVS));
 	   }
-	   headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * headlightintensity;
+	   headlightContrib = vec4(HEADLIGHT_COLOR, 1.0) * (headlightDiff + headlightSpec);
    }
 
    color = diffuseColor * clamp(vec4(AMBIENT_LIGHT,1.0) + (lampsContrib + sunContrib + headlightContrib), 0.0, 1.0);
