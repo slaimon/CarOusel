@@ -74,6 +74,22 @@ float headlight_nighttime = glm::cos(glm::radians(90.0 - HEADLIGHT_NIGHTTIME_THR
 #define LAMP_SHADOWMAP_SIZE        1024u
 #define HEADLIGHT_SHADOWMAP_SIZE   1024u
 
+#define CAMERA_FAST 0.250f
+#define CAMERA_SLOW 0.025f
+
+CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
+unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
+bool fineMovement = false;
+bool debugView = false;
+bool timeStep = true;
+bool drawShadows = true;
+bool sunState = true;
+bool lampState = false;
+bool lampUserState = false;
+bool headlightState = false;
+bool headlightUserState = false;
+float playerMinHeight = 0.01;
+
 // textures and shading
 typedef enum shadingMode {
    SHADING_TEXTURED_FLAT,     // 0
@@ -144,35 +160,13 @@ void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox,
    }
 }
 
-// set up camera controls
-
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
 void updateDelta() {
    float currentFrame = glfwGetTime();
    deltaTime = currentFrame - lastFrame;
    lastFrame = currentFrame;
 }
-
-#define CAMERA_FAST 0.250f
-#define CAMERA_SLOW 0.025f
-
-CameraControls camera(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f), CAMERA_FAST);
-unsigned int POVselected = 0; // will keep track of how many times the user has requested a POV switch
-bool fineMovement = false;
-bool debugView = false;
-bool timeStep = true;
-bool drawShadows = true;
-bool sunState = true;
-bool lampState = false;
-bool lampUserState = false;
-bool headlightState = false;
-bool headlightUserState = false;
-float playerMinHeight = 0.01;
-
-float scale;
-glm::vec3 center;
 
 void processInput(GLFWwindow* window, terrain t) {
    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -565,8 +559,8 @@ int main(int argc, char** argv) {
    
    // center the view on the scene
    matrix_stack stack;
-   scale = 1.f/r.bbox().diagonal();
-   center = r.bbox().center();
+   float scale = 1.f/r.bbox().diagonal();
+   glm::vec3 center = r.bbox().center();
    stack.load_identity();
    stack.push();
    stack.mult(glm::scale(glm::mat4(1.f), glm::vec3(scale)));
