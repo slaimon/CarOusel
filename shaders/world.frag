@@ -95,7 +95,8 @@ float tanacos(float x) {
 }
 
 float sunlightIntensity() {
-   return uSunState * max(0.0, dot(uSunDirection, vec3(0.0,1.0,0.0)));
+   float c = dot(uSunDirection, vec3(0.0,1.0,0.0));
+   return uSunState * sqrt(max(0.0, c));
 }
 
 // L and N must be normalized
