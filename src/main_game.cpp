@@ -108,6 +108,9 @@ typedef enum textureSlot {
    TEXTURE_SHADOWMAP_CARS
 } textureSlot_t;
 
+
+/*   ------   loading functions   ------   */
+
 texture texture_grass_diffuse, texture_track_diffuse;
 void load_textures() {
    texture_grass_diffuse.load(textures_path + "grass_diff.png", TEXTURE_GRASS);
@@ -159,6 +162,9 @@ void drawLoadedModel(matrix_stack stack, std::vector<renderable> obj, box3 bbox,
       stack.pop();
    }
 }
+
+
+/*   ------   callbacks   ------   */
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -244,6 +250,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
    camera.mouseLook(xpos/width, ypos/height);
 }
 
+
+/*   ------   daylight functions   ------   */
+
 bool isDaytime(glm::vec3 sunlight_direction) {
    return glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f)) >= 0.f;
 }
@@ -251,6 +260,9 @@ bool isDaytime(glm::vec3 sunlight_direction) {
 float computeSkyIntensity(glm::vec3 sunlight_direction) {
    return glm::max(0.25f, sqrt(glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f))));
 }
+
+
+/*   ------   draw functions   ------   */
 
 race r;
 renderable fram;
@@ -495,6 +507,7 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
 
 
 
+/*   ------   main   ------   */
 
 
 int main(int argc, char** argv) {
@@ -626,6 +639,9 @@ int main(int argc, char** argv) {
    glm::vec3 skyColor(0.25f, 0.61f, 1.0f);
    float skyIntensity = computeSkyIntensity(r.sunlight_direction());
    glm::vec3 sky = skyIntensity * skyColor;
+
+
+   /*   ------   main draw loop   ------   */
 
    glEnable(GL_DEPTH_TEST);
    while (!glfwWindowShouldClose(window)) {
