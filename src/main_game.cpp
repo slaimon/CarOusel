@@ -52,6 +52,11 @@ int height = 900;
 #define COLOR_WHITE  glm::vec3(1.f,1.f,1.f)
 #define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
 
+// base color of the sky
+#define SKY_COLOR_RGB  0.25f, 0.61f, 1.0f
+// intensity of the sky's color at night
+#define SKY_COLOR_MIN_INTENSITY   0.25f
+
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
 #define LAMP_ANGLE_OUT  glm::radians(50.0f)
@@ -258,7 +263,7 @@ bool isDaytime(glm::vec3 sunlight_direction) {
 }
 
 float computeSkyIntensity(glm::vec3 sunlight_direction) {
-   return glm::max(0.25f, sqrt(glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f))));
+   return glm::max(SKY_COLOR_MIN_INTENSITY, sqrt(glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f))));
 }
 
 
@@ -636,7 +641,7 @@ int main(int argc, char** argv) {
    glUniform1i(shader_world["uHeadlightShadowmapSize"], HEADLIGHT_SHADOWMAP_SIZE);
    glUseProgram(0);
 
-   glm::vec3 skyColor(0.25f, 0.61f, 1.0f);
+   glm::vec3 skyColor(SKY_COLOR_RGB);
    float skyIntensity = computeSkyIntensity(r.sunlight_direction());
    glm::vec3 sky = skyIntensity * skyColor;
 
