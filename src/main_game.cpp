@@ -248,6 +248,9 @@ bool isDaytime(glm::vec3 sunlight_direction) {
    return glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f)) >= 0.f;
 }
 
+float computeSkyIntensity(glm::vec3 sunlight_direction) {
+   return glm::max(0.25f, sqrt(glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f))));
+}
 
 race r;
 renderable fram;
@@ -620,6 +623,9 @@ int main(int argc, char** argv) {
    glUniform1i(shader_world["uHeadlightShadowmapSize"], HEADLIGHT_SHADOWMAP_SIZE);
    glUseProgram(0);
 
+   glm::vec3 skyColor(0.25f, 0.61f, 1.0f);
+   float skyIntensity = computeSkyIntensity(r.sunlight_direction());
+   glm::vec3 sky = skyIntensity * skyColor;
 
    glEnable(GL_DEPTH_TEST);
    while (!glfwWindowShouldClose(window)) {
@@ -627,13 +633,15 @@ int main(int argc, char** argv) {
       glfwGetWindowSize(window, &width, &height);
       glViewport(0, 0, width, height);
 
-      glClearColor(0.3f, 0.3f, 0.3f, 1.f);
+      glClearColor(sky.r, sky.g, sky.b, 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       check_gl_errors(__LINE__, __FILE__);
       
       if (timeStep) {
          r.update(pauseLength);
          pauseLength = 0;
+         skyIntensity = computeSkyIntensity(r.sunlight_direction());
+         sky = skyIntensity * skyColor;
          lamps.setSunlightSwitch(r.sunlight_direction(), lamp_nighttime);
          headlights.setSunlightSwitch(r.sunlight_direction(), headlight_nighttime);
          daytime = isDaytime(r.sunlight_direction());
