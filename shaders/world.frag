@@ -27,9 +27,9 @@ out vec4 color;
 // shadow mapping parameters
 #define BIAS_PCF_SUN        0.005
 #define BIAS_PCF_LAMP       0.001
-#define BIAS_A       0.0002
+#define BIAS_A       0.002
 #define BIAS_MIN_E   0.0001
-#define BIAS_MAX_E   0.0025
+#define BIAS_MAX_E   0.01
 
 
 /*   ------   INPUTS   ------   */
