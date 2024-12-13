@@ -30,8 +30,9 @@ struct carousel_loader {
 	}
 
 	static int load(const char * svgFile, const char* terrain_image,race & r) {
-		carousel_loader::r() = &r;
+		std::cout << "Loading scene... ";
 
+		carousel_loader::r() = &r;
 		int sx, sy,comp;
 		unsigned char* data = stbi_load( terrain_image, &sx, &sy, &comp, 1);
 
@@ -44,14 +45,14 @@ struct carousel_loader {
 		struct NSVGimage* image;
 		struct ::NSVGrasterizer* rast = ::nsvgCreateRasterizer();
 		image = nsvgParseFromFile(svgFile, "px", 96);
-		printf("size: %f x %f\n", image->width, image->height);
+		//printf("size: %f x %f\n", image->width, image->height);
 		
 		r._bbox.add(glm::vec3(0.f, 0.f, 0.f));
 		r._bbox.add(glm::vec3(image->width, 0.f, image->height));
 		r._ter.rect_xz = glm::vec4(0, 0, image->width, image->height);
 
 		for (NSVGshape* shape = image->shapes; shape != NULL; shape = shape->next) {
-			printf("id %s\n", shape->id);
+			//printf("id %s\n", shape->id);
 
 			if (std::string(shape->id).find("tree") != std::string::npos)  
 				push_stick_object(shape->paths, 2.f, r._trees);
@@ -119,6 +120,7 @@ struct carousel_loader {
 					}
 		}
 
+		std::cout << "done" << std::endl;
 		nsvgDelete(image);
 		return 1;
 	}

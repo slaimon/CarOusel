@@ -137,7 +137,7 @@ inline void generateTrackVertexNormals(track t, renderable& r) {
 }
 
 void inline prepareTrack(race r, renderable& r_track) {
-   std::cout << "Generating track..." << std::endl;
+   std::cout << "Generating track... ";
 
    r_track.create();
    game_to_renderable::to_track(r, r_track);
@@ -149,10 +149,11 @@ void inline prepareTrack(race r, renderable& r_track) {
    r_track.add_vertex_attribute<GLfloat>(&trackTextureCoords[0], trackTextureCoords.size(), 4, 2);
 
    generateTrackVertexNormals(r.t(), r_track);
+   std::cout << "done" << std::endl;
 }
 
 void inline prepareTerrain(race r, renderable& r_terrain) {
-   std::cout << "Generating terrain..." << std::endl;
+   std::cout << "Generating terrain... ";
 
    r_terrain.create();
    game_to_renderable::to_heightfield(r, r_terrain);
@@ -161,4 +162,5 @@ void inline prepareTerrain(race r, renderable& r_terrain) {
    r_terrain.add_vertex_attribute<GLfloat>(&terrainTextureCoords[0], terrainTextureCoords.size(), 4, 2);
 
    generateTerrainVertexNormals(r.ter(), r_terrain);
+   std::cout << "done" << std::endl;
 }

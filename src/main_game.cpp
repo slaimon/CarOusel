@@ -126,11 +126,13 @@ void load_textures() {
 box3 bbox_car, bbox_camera, bbox_lamp, bbox_tree;
 std::vector <renderable> model_car, model_camera, model_lamp, model_tree;
 void load_models() {
+   std::cout << "Loading models... ";
    gltf_loader gltfLoader;
    gltfLoader.load_to_renderable(models_path + "car1.glb", model_car, bbox_car);
    gltfLoader.load_to_renderable(models_path + "camera4.glb", model_camera, bbox_camera);
    gltfLoader.load_to_renderable(models_path + "lamp2.glb", model_lamp, bbox_lamp);
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
+   std::cout << "done" << std::endl;
 }
 
 shader shader_basic, shader_world, shader_depth, shader_fsq;
@@ -509,11 +511,6 @@ void draw_scene(matrix_stack stack, bool depthOnly) {
 
 
 int main(int argc, char** argv) {
-   carousel_loader::load((assets_path + "small_test.svg").c_str(), (assets_path + "terrain_256.png").c_str(), r);
-   
-   for (int i = 0; i < CARS_NUM; ++i)
-      r.add_car();
-
    GLFWwindow* window;
    if (!glfwInit())
       return -1;
@@ -533,6 +530,10 @@ int main(int argc, char** argv) {
    glfwSetKeyCallback(window, keyboard_callback);
    glewInit();
    printout_opengl_glsl_info();
+
+   carousel_loader::load((assets_path + "small_test.svg").c_str(), (assets_path + "terrain_256.png").c_str(), r);
+   for (int i = 0; i < CARS_NUM; ++i)
+      r.add_car();
    
    // load the 3D models
       load_models();
