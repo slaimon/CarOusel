@@ -53,9 +53,7 @@ int height = 900;
 #define COLOR_YELLOW glm::vec3(1.f,1.f,0.f)
 
 // base color of the sky
-#define SKY_COLOR_RGB  0.25f, 0.61f, 1.0f
-// intensity of the sky's color at night
-#define SKY_COLOR_MIN_INTENSITY   0.25f
+#define SKY_COLOR_RGB  0.3f, 0.3f, 0.3f
 
 // opening angles of the street lamps' beam
 #define LAMP_ANGLE_IN   glm::radians(15.0f)
@@ -261,11 +259,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 bool isDaytime(glm::vec3 sunlight_direction) {
    return glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f)) >= 0.f;
 }
-
-float computeSkyIntensity(glm::vec3 sunlight_direction) {
-   return glm::max(SKY_COLOR_MIN_INTENSITY, sqrt(glm::dot(sunlight_direction, glm::vec3(0.f, 1.f, 0.f))));
-}
-
 
 /*   ------   draw functions   ------   */
 
@@ -642,9 +635,6 @@ int main(int argc, char** argv) {
    glUseProgram(0);
 
    glm::vec3 skyColor(SKY_COLOR_RGB);
-   float skyIntensity = computeSkyIntensity(r.sunlight_direction());
-   glm::vec3 sky = skyIntensity * skyColor;
-
 
    /*   ------   main draw loop   ------   */
 
@@ -654,15 +644,13 @@ int main(int argc, char** argv) {
       glfwGetWindowSize(window, &width, &height);
       glViewport(0, 0, width, height);
 
-      glClearColor(sky.r, sky.g, sky.b, 1.f);
+      glClearColor(skyColor.r, skyColor.g, skyColor.b, 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       check_gl_errors(__LINE__, __FILE__);
       
       if (timeStep) {
          r.update(pauseLength);
          pauseLength = 0;
-         skyIntensity = computeSkyIntensity(r.sunlight_direction());
-         sky = skyIntensity * skyColor;
          lamps.setSunlightSwitch(r.sunlight_direction(), lamp_nighttime);
          headlights.setSunlightSwitch(r.sunlight_direction(), headlight_nighttime);
          daytime = isDaytime(r.sunlight_direction());
