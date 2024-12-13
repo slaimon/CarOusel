@@ -294,8 +294,10 @@ struct gltf_loader {
 
 	void load_to_renderable(std::string input_filename, std::vector<renderable> & _renderable, box3 & bbox) {
 		reset();
+		std::cout << "Loading model " << input_filename << "... ";
 		load(input_filename);
 		create_renderable(_renderable, bbox);
+		std::cout << "done" << std::endl;
 	}
 
 };
