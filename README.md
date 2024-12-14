@@ -1,5 +1,10 @@
 # CarOusel
 
+<span>
+  <img src="./img/cover1.jpg" width="256">
+  <img src="./img/cover2.jpg" width="256">
+</span>
+
 A project for the UniPi Computer Graphics course.
 
 It consists of a freely explorable scene with cars running around a track.
