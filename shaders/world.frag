@@ -6,6 +6,7 @@ out vec4 color;
 #define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)          // pure white
 #define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)          // sodium vapor
 #define HEADLIGHT_COLOR    vec3(1.00,0.73,0.00)          // selective yellow
+//#define HEADLIGHT_COLOR    vec3(1.00,0.84,0.67)          // tungsten light
 
 // lamp group parameters
 #define NUM_LAMPS         19
