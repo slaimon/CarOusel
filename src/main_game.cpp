@@ -106,6 +106,7 @@ typedef enum textureSlot {
    TEXTURE_GRASS,
    TEXTURE_ROAD,
    TEXTURE_DIFFUSE,
+   TEXTURE_HEADLIGHTS,
    TEXTURE_SHADOWMAP_SUN,
    TEXTURE_SHADOWMAP_LAMPS,
    TEXTURE_SHADOWMAP_CARS
@@ -133,12 +134,13 @@ void load_models() {
    gltfLoader.load_to_renderable(models_path + "styl-pine.glb", model_tree, bbox_tree);
 }
 
-shader shader_basic, shader_world, shader_depth, shader_fsq;
+shader shader_basic, shader_world, shader_depth, shader_fsq_view, shader_fsq_headlight;
 void load_shaders() {
    shader_basic.create_program((shaders_path + "basic.vert").c_str(), (shaders_path + "basic.frag").c_str());
    shader_world.create_program((shaders_path + "world.vert").c_str(), (shaders_path + "world.frag").c_str());
    shader_depth.create_program((shaders_path + "depth.vert").c_str(), (shaders_path + "depth.frag").c_str());
-   shader_fsq.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq.frag").c_str());
+   shader_fsq_view.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq_view.frag").c_str());
+   shader_fsq_headlight.create_program((shaders_path + "fsq.vert").c_str(), (shaders_path + "fsq_headlight.frag").c_str());
 }
 
 // the passed shader MUST be already active!
@@ -414,18 +416,44 @@ void draw_trees(shader sh, matrix_stack stack) {
 }
 
 renderable r_quad;
-void draw_texture(GLint tex_id, unsigned int texture_slot) {
-   GLint at;
-   glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
-   glUseProgram(shader_fsq.program);
-
-   glActiveTexture(GL_TEXTURE0 + texture_slot);
-   glBindTexture(GL_TEXTURE_2D, tex_id);
-   glUniform1i(shader_fsq["uTexture"], texture_slot);
+void draw_fsq() {
    r_quad.bind();
    glDisable(GL_CULL_FACE);
    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+// draw the depth buffer from the given texture
+void draw_depthbuffer(GLuint tex_id, unsigned int texture_slot) {
+   GLint at;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+   glUseProgram(shader_fsq_view.program);
+
+   glActiveTexture(GL_TEXTURE0 + texture_slot);
+   glBindTexture(GL_TEXTURE_2D, tex_id);
+   glUniform1i(shader_fsq_view["uTexture"], texture_slot);
+   draw_fsq();
    
+   glUseProgram(0);
+   glActiveTexture(at);
+}
+
+// render a procedural texture to the given slot at the specified resolution
+void draw_texture(shader s, unsigned int res_x, unsigned int res_y, unsigned int texture_slot) {
+   GLint at;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &at);
+   glUseProgram(s.program);
+
+   frame_buffer_object fbo;
+   fbo.create(res_x, res_y);
+   glBindFramebuffer(GL_FRAMEBUFFER, fbo.id_fbo);
+   glViewport(0, 0, res_x, res_y);
+   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+   draw_fsq();
+   glActiveTexture(GL_TEXTURE0 + texture_slot);
+   glBindTexture(GL_TEXTURE_2D, fbo.id_tex);
+
+   fbo.remove();
    glUseProgram(0);
    glActiveTexture(at);
 }
@@ -532,10 +560,6 @@ int main(int argc, char** argv) {
    carousel_loader::load((assets_path + "small_test.svg").c_str(), (assets_path + "terrain_256.png").c_str(), r);
    for (int i = 0; i < CARS_NUM; ++i)
       r.add_car();
-   
-   // load the 3D models
-      load_models();
-
 
    // begin creating the world
    fram = shape_maker::frame();
@@ -558,9 +582,12 @@ int main(int argc, char** argv) {
    glViewport(0, 0, width, height);
    glm::mat4 proj = glm::perspective(glm::radians(45.f), (float)width/(float)height, 0.001f, 10.f);
    
+   load_models();
    load_textures();
    load_shaders();
+   draw_texture(shader_fsq_headlight, 2048, 2048, TEXTURE_HEADLIGHTS);
    glUseProgram(shader_world.program);
+   glUniform1i(shader_world["uHeadlightTexture"], TEXTURE_HEADLIGHTS);
    glUniformMatrix4fv(shader_world["uProj"], 1, GL_FALSE, &proj[0][0]);
    glUniformMatrix4fv(shader_world["uView"], 1, GL_FALSE, &camera.matrix()[0][0]);
    glUniform1i(shader_world["uColorImage"], 0);
@@ -568,8 +595,8 @@ int main(int argc, char** argv) {
    glUseProgram(shader_basic.program);
    glUniformMatrix4fv(shader_basic["uProj"], 1, GL_FALSE, &proj[0][0]);
    glUniformMatrix4fv(shader_basic["uView"], 1, GL_FALSE, &camera.matrix()[0][0]);
-
    
+
    // center the view on the scene
    matrix_stack stack;
    float scale = 1.f/r.bbox().diagonal();
@@ -731,7 +758,7 @@ int main(int argc, char** argv) {
          if (drawShadows && sunState && daytime) {
             glViewport(0, 0, 200, 200);
             glDisable(GL_DEPTH_TEST);
-            draw_texture(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
+            draw_depthbuffer(sunProjector.getTextureID(), TEXTURE_SHADOWMAP_SUN);
             glEnable(GL_DEPTH_TEST);
             glViewport(0, 0, width, height);
          }

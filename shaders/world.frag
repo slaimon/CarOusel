@@ -21,8 +21,6 @@ out vec4 color;
 
 // headlights parameters
 #define NUM_CARS     1
-#define HEADLIGHT_SPREAD      0.1
-#define HEADLIGHT_SPREAD_SQRT sqrt(HEADLIGHT_SPREAD)
 
 // shadow mapping parameters
 #define BIAS_PCF_SUN        0.005
@@ -85,6 +83,7 @@ uniform float uShininess;
 uniform float uDiffuse;
 uniform float uSpecular;
 uniform sampler2D uColorImage;
+uniform sampler2D uHeadlightTexture;
 
 float unpack(vec4 v) {
    return v.x + v.y / (256.0) + v.z / (256.0*256.0) + v.w / (256.0*256.0*256.0);
@@ -127,16 +126,10 @@ float spotlightIntensity(vec3 lightPos, vec3 surfacePos) {
 }
 
 float headlightIntensity(int i) {
-	if (vPosHeadlightLS[i].w < 0.0)
-       return 0.0;
-	vec2 texcoords = (vPosHeadlightLS[i]/vPosHeadlightLS[i].w).xy;
-	float d = length(texcoords);
-    if (d > 1.0)
+   if (vPosHeadlightLS[i].w < 0.0)
       return 0.0;
-	if (d <= HEADLIGHT_SPREAD_SQRT)
-	   return 1.0;
-	else
-	   return HEADLIGHT_SPREAD / (d*d) - HEADLIGHT_SPREAD;
+   vec2 texcoords = (vPosHeadlightLS[i]/vPosHeadlightLS[i].w).xy;
+   return texture(uHeadlightTexture, texcoords);
 }
 
 float attenuation(float d) {
