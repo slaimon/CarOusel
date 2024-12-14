@@ -2,10 +2,10 @@
 out vec4 color;
 
 // light colors
-#define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.35
-#define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)
-#define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)
-#define HEADLIGHT_COLOR    vec3(1.00,1.00,0.00)
+#define AMBIENT_LIGHT      vec3(0.25,0.61,1.0) * 0.35    // clear blue
+#define SUNLIGHT_COLOR     vec3(1.00,1.00,1.00)          // pure white
+#define LAMPLIGHT_COLOR    vec3(1.00,0.82,0.70)          // sodium vapor
+#define HEADLIGHT_COLOR    vec3(1.00,0.73,0.00)          // selective yellow
 
 // lamp group parameters
 #define NUM_LAMPS         19
