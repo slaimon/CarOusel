@@ -62,20 +62,19 @@ struct shader{
 			std::string vertex_shader_src_code  = textFileRead(nameV);
 			std::string fragment_shader_src_code  = textFileRead(nameF);
 
+			bind_uniform_variables(vertex_shader_src_code);
+			bind_uniform_variables(fragment_shader_src_code);
+
 			create_shader(vertex_shader_src_code.c_str(), GL_VERTEX_SHADER);
+			check_shader(vertex_shader);
 			create_shader(fragment_shader_src_code.c_str(), GL_FRAGMENT_SHADER);
+			check_shader(fragment_shader);
 
 			program = glCreateProgram();
 			glAttachShader(program,vertex_shader);
 			glAttachShader(program,fragment_shader);
 
-			glLinkProgram(program);
-
-			bind_uniform_variables(vertex_shader_src_code);
-			bind_uniform_variables(fragment_shader_src_code);
-
-			check_shader(vertex_shader);
-			check_shader(fragment_shader);
+			glLinkProgram(program);	// access violation when linking shader_world.program on my machine
 			validate_shader_program(program);
 		}
 
